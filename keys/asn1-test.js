@@ -142,7 +142,7 @@ function jwk2pem(json) {
   let isPrivate = Boolean(jwk.d)
   let t = 'PRIVATE'
   let header = '-----BEGIN RSA ' + t + ' KEY-----\n'
-  let footer = '\n-----END RSA ' + t + ' KEY-----\n'
+  let footer = '\n-----END RSA ' + t + ' KEY-----'
   let data = Buffer(0)
 
   jwk.version = 'two-prime'
@@ -152,4 +152,4 @@ function jwk2pem(json) {
   return header + body + footer
 }
 
-console.log(JSON.stringify(jwk2pem(pem2jwk(privateKey))))
+console.log(jwk2pem(pem2jwk(privateKey)))
