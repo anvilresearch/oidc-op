@@ -11,7 +11,7 @@ instantiated multiple times to support multitenancy use cases. It should also
 have a method that provides a mountable router or app for widely used frameworks
 like Express.
 
-## Core Scope
+## Scope
 
 - Core
 - Discovery
@@ -25,12 +25,15 @@ like Express.
 - Proof Key for Code Exchange by OAuth Clients (PKCE)
 - Authorization Cross Domain Code (ACDC)
 
-## Dependency Scope
+## Dependencies
 
-- JSON Schema
-- JSON Mapping
-- JSON Pointer
-- JOSE: JWT, JWS, JWE, JWA, JWK, JWK Set
+This package is a work in progress, dependent on other ongoing projects. Code
+contained herein will be completed when the following dependencies are ready to
+release:
+
+- [anvilresearch/jose](https://github.com/anvilresearch/jose)
+- [anvilresearch/webcrypto](https://github.com/anvilresearch/webcrypto)
+- [anvilresearch/json-document](https://github.com/anvilresearch/json-document)
 
 ## Tentative Scope
 
