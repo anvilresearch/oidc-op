@@ -19,7 +19,8 @@ class JWKSetRequest extends BaseRequest {
    * @param {Provider} provider
    */
   static handle (req, res, provider) {
-    res.json(provider.jwkSet)
+    res.type('json')
+    res.send(provider.jwkSet)
   }
 }
 
