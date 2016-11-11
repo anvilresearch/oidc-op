@@ -19,7 +19,8 @@ class OpenIDConfigurationRequest extends BaseRequest {
    * @param {Provider} provider
    */
   static handle (req, res, provider) {
-    res.json(provider.openidConfiguration)
+    res.type('json')
+    res.send(provider.openidConfiguration)
   }
 }
 
