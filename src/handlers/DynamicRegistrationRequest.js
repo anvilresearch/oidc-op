@@ -26,7 +26,7 @@ class DynamicRegistrationRequest extends BaseRequest {
 
     Promise.resolve(request)
       .then(request.validate)
-      //.then(request.register)
+      .then(request.register)
       .then(request.token)
       .then(request.respond)
   }
@@ -69,8 +69,11 @@ class DynamicRegistrationRequest extends BaseRequest {
    * @returns {Promise}
    */
   register (request) {
-    let {registration, provider} = request
-    return provider.host.registerClient(registration).then(result => request)
+    let backend = request.provider.backend
+    let client = request.client
+    let id = client['client_id']
+
+    return backend.put('clients', id, client).then(client => request)
   }
 
   /**
