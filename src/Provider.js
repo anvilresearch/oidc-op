@@ -3,21 +3,94 @@
 /**
  * Dependencies
  */
-const cwd = process.cwd()
-const path = require('path')
-
-const providerSchema = require(path.join(cwd, 'src', 'schemas', 'ProviderSchema'))
-const AuthenticationRequest = require(path.join(cwd, 'src', 'handlers', 'AuthenticationRequest'))
-const OpenIDConfigurationRequest = require(path.join(cwd, 'src', 'handlers', 'OpenIDConfigurationRequest'))
-const DynamicRegistrationRequest = require(path.join(cwd, 'src', 'handlers', 'DynamicRegistrationRequest'))
-const JWKSetRequest = require(path.join(cwd, 'src', 'handlers', 'JWKSetRequest'))
-const TokenRequest = require(path.join(cwd, 'src', 'handlers', 'TokenRequest'))
-const UserInfoRequest = require(path.join(cwd, 'src', 'handlers', 'UserInfoRequest'))
+const {JSONDocument} = require('json-document')
+const KeyChain = require('keychain')
+const ProviderSchema = require('./schemas/ProviderSchema')
+const AuthenticationRequest = require('./handlers/AuthenticationRequest')
+const OpenIDConfigurationRequest = require('./handlers/OpenIDConfigurationRequest')
+const DynamicRegistrationRequest = require('./handlers/DynamicRegistrationRequest')
+const JWKSetRequest = require('./handlers/JWKSetRequest')
+const TokenRequest = require('./handlers/TokenRequest')
+const UserInfoRequest = require('./handlers/UserInfoRequest')
 
 /**
  * OpenID Connect Provider
  */
-class Provider {
+class Provider extends JSONDocument {
+
+  /**
+   * constructor
+   */
+  constructor (data, options) {
+    let {issuer} = data
+
+    //assert(issuer, 'OpenID Provider must have an issuer')
+
+    data['authorization_endpoint'] = `${issuer}/authorize`
+    data['token_endpoint'] = `${issuer}/token`
+    data['userinfo_endpoint'] = `${issuer}/userinfo`
+    data['jwks_uri'] = `${issuer}/jwks`
+    data['registration_endpoint'] = `${issuer}/register`
+    data['check_session_iframe'] = `${issuer}/session`
+    data['end_session_endpoint'] = `${issuer}/logout`
+
+    super(data, options)
+  }
+
+  /**
+   * initializeKeyChain
+   */
+  initializeKeyChain () {
+    let modulusLength = 2048
+
+    let descriptor = {
+      id_token: {
+        signing: {
+          RS256: { alg: 'RS256', modulusLength },
+          RS384: { alg: 'RS384', modulusLength },
+          RS512: { alg: 'RS512', modulusLength }
+        },
+        encryption: {
+          // ?
+        }
+      },
+      token: {
+        signing: {
+          RS256: { alg: 'RS256', modulusLength },
+          RS384: { alg: 'RS384', modulusLength },
+          RS512: { alg: 'RS512', modulusLength }
+        },
+        encryption: {}
+      },
+      userinfo: {
+        encryption: {}
+      },
+      register: {
+        signing: {
+          RS256: { alg: 'RS256', modulusLength }
+        }
+      }
+    }
+
+
+    this.keys = new KeyChain(descriptor)
+
+    return this.keys.rotate()
+  }
+
+  /**
+   * openidConfiguration
+   */
+  get openidConfiguration () {
+    return JSON.stringify(this, Object.keys(ProviderSchema.properties))
+  }
+
+  /**
+   * jwkSet
+   */
+  get jwkSet () {
+    return this.keys.jwkSet
+  }
 
   /**
    * Schema
@@ -25,40 +98,7 @@ class Provider {
    * @returns {JSONSchema}
    */
   static get schema () {
-    return providerSchema
-  }
-
-  /**
-   * Constructor
-   *
-   * @param {Object} host
-   * @param {Object} configuration
-   * @param {Object} options
-   */
-  constructor (host, configuration = {}, options = {}) {
-    this.host = host
-    //this.initialize(this, configuration, options)
-  }
-
-  /**
-   * Initialize
-   *
-   * @param {Object} data
-   * @param {Object} options
-   */
-  intialize (data = {}, options = {}) {
-    let {constructor: {schema}} = this
-    schema.initialize(this, data, options)
-  }
-
-  /**
-   * Validate
-   *
-   * @returns {Object}
-   */
-  validate () {
-    let {constructor: {schema}} = this
-    return schema.validate(this)
+    return ProviderSchema
   }
 
   /**
