@@ -11,25 +11,36 @@ const {JSONSchema} = require('json-document')
 const schema = new JSONSchema({
   type: 'object',
   properties: {
+    client_id: {
+      type: 'string'
+    },
+
+    client_secret: {
+      type: 'string'
+    },
 
     redirect_uris: {
       type: 'array',
-      required: true,
-      format: 'uri'
+      items: {
+        format: 'uri'
+      }
     },
 
     response_types: {
       type: 'array',
       default: ['code'],
-      enum: [
-        'code',
-        'code token',
-        'code id_token',
-        'id_token',
-        'id_token token',
-        'code id_token token',
-        'none'
-      ]
+      items: {
+        type: 'string',
+        enum: [
+          'code',
+          'code token',
+          'code id_token',
+          'id_token',
+          'id_token token',
+          'code id_token token',
+          'none'
+        ]
+      }
     },
 
     /**
@@ -49,12 +60,15 @@ const schema = new JSONSchema({
     grant_types: {
       type: 'array',
       default: ['authorization_code'],
-      enum: [
-        'authorization_code',
-        'implicit',
-        'refresh_token',
-        'client_credentials'
-      ]
+      items: {
+        type: 'string',
+        enum: [
+          'authorization_code',
+          'implicit',
+          'refresh_token',
+          'client_credentials'
+        ]
+      }
     },
 
     /**
@@ -83,7 +97,9 @@ const schema = new JSONSchema({
 
     contacts: {
       type: 'array',
-      format: 'email'
+      items: {
+        format: 'email'
+      }
     },
 
     /**
@@ -143,7 +159,13 @@ const schema = new JSONSchema({
     },
 
     id_token_signed_response_alg: {
-      type: 'string'
+      type: 'string',
+      default: 'RS256',
+      enum: [
+        'RS256',
+        'RS384',
+        'RS512'
+      ]
     },
 
     id_token_encrypted_response_alg: {
@@ -213,12 +235,16 @@ const schema = new JSONSchema({
 
     request_uris: {
       type: 'array',
-      format: 'uri'
+      items: {
+        format: 'uri'
+      }
     },
 
     post_logout_redirect_uris: {
       type: 'array',
-      format: 'uri'
+      items: {
+        format: 'uri'
+      }
     }
   }
 })
