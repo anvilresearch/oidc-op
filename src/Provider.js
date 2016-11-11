@@ -72,9 +72,7 @@ class Provider extends JSONDocument {
       }
     }
 
-
     this.keys = new KeyChain(descriptor)
-
     return this.keys.rotate()
   }
 

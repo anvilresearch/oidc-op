@@ -75,7 +75,7 @@ class AuthenticationRequest extends BaseRequest {
     // SHOULD BE HANDLED HERE (WITH AN ERROR RESPONSE),
     // SO THERE'S NOTHING TO CATCH.
     return new Promise((resolve, reject) => {
-      provider.getClient(params.client_id).then(client => {
+      provider.backend.get('clients', params.client_id).then(client => {
 
         // UNKNOWN CLIENT
         if (!client) {
@@ -89,7 +89,7 @@ class AuthenticationRequest extends BaseRequest {
         request.client = client
 
         // REDIRECT_URI MUST MATCH
-        if (client.redirect_uris.indexOf(params.redirect_uri) === -1) {
+        if (!client.redirect_uris.includes(params.redirect_uri)) {
           return request.badRequest({
             error: 'invalid_request',
             error_description: 'Mismatching redirect uri'
@@ -113,7 +113,7 @@ class AuthenticationRequest extends BaseRequest {
         }
 
         // OPENID SCOPE IS REQUIRED
-        if (params.scope.indexOf('openid') === -1) {
+        if (!params.scope.includes('openid')) {
           return request.redirect({
             error: 'invalid_scope',
             error_description: 'Missing openid scope'
@@ -158,8 +158,8 @@ class AuthenticationRequest extends BaseRequest {
    * @returns {bool}
    */
   supportedResponseType () {
-    let {client,params,provider} = this
-    let supportedResponseTypes = provider.supported_response_types
+    let {params, provider} = this
+    let supportedResponseTypes = provider.response_types_supported
     let requestedResponseType = params.response_type
 
     // TODO
@@ -167,7 +167,7 @@ class AuthenticationRequest extends BaseRequest {
     // by client registration
     //
     // let registeredResponseTypes = client.response_types
-    return supportedResponseTypes.indexOf(requestedResponseType) !== -1
+    return supportedResponseTypes.includes(requestedResponseType)
   }
 
   /**
@@ -176,8 +176,8 @@ class AuthenticationRequest extends BaseRequest {
    * @returns {bool}
    */
   supportedResponseMode () {
-    let {params,provider} = this
-    let supportedResponseModes = provider.supported_response_modes
+    let {params, provider} = this
+    let supportedResponseModes = provider.response_modes_supported
     let requestedResponseMode = params.response_mode
 
     if (!requestedResponseMode) {
