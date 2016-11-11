@@ -123,6 +123,8 @@ const schema = new JSONSchema({
       type: 'array',
       default: [
         'RS256',
+        'RS384',
+        'RS512',
         'none'
       ],
       enum: [
