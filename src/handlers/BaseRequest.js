@@ -97,7 +97,12 @@ class BaseRequest {
    * 302 Redirect Response
    */
   redirect (data) {
-    let { res, params: { redirect_uri: uri }, responseMode } = this
+    let { res, params: { redirect_uri: uri, state }, responseMode } = this
+
+    if (state) {
+      data.state = state
+    }
+
     let response = qs.stringify(data)
     res.redirect(`${uri}${responseMode}${response}`)
   }
