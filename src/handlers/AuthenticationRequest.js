@@ -4,7 +4,11 @@
  * Dependencies
  * @ignore
  */
+const crypto = require('webcrypto')
 const BaseRequest = require('./BaseRequest')
+const AccessToken = require('../AccessToken')
+const AuthorizationCode = require('../AuthorizationCode')
+const IDToken = require('../IDToken')
 
 /**
  * AuthenticationRequest
@@ -25,8 +29,8 @@ class AuthenticationRequest extends BaseRequest {
     Promise
       .resolve(request)
       .then(request.validate)
-      .then(host.authenticate)
-      .then(host.obtainConsent)
+      .then(host.authenticate)  // QUESTION, what's the cleanest way to
+      .then(host.obtainConsent) // bind this here?
       .then(request.authorize)
       .catch(request.internalServerError)
   }
@@ -211,12 +215,10 @@ class AuthenticationRequest extends BaseRequest {
    * @returns {Promise}
    */
   authorize (request) {
-    let {params} = request
-
-    if (params.authorize === true) {
-      request.allow()
+    if (request.consent === true) {
+      request.allow(request)
     } else {
-      request.deny()
+      request.deny(request)
     }
   }
 
@@ -227,13 +229,14 @@ class AuthenticationRequest extends BaseRequest {
    * consent, build a response incorporating auth code, tokens, and session
    * state.
    */
-  allow () {
+  allow (request) {
     Promise.resolve({}) // initialize empty response
-      .then(this.includeAccessToken)
-      .then(this.includeAuthorizationCode)
-      .then(this.includeIDToken)
-      .then(this.includeSessionState)
-      .then(this.redirect)
+      .then(this.includeAccessToken.bind(this))
+      .then(this.includeAuthorizationCode.bind(this))
+      .then(this.includeIDToken.bind(this))
+      //.then(this.includeSessionState.bind(this))
+      .then(this.redirect.bind(this))
+      // do some error handling here
   }
 
   /**
@@ -242,8 +245,11 @@ class AuthenticationRequest extends BaseRequest {
    * Handle user's rejection of the client.
    */
   deny (request) {
+    let {params} = request
+    let {state} = params
+
     this.redirect({
-      error: 'access_denied'
+      error: 'access_denied', state
     })
   }
 
@@ -251,45 +257,131 @@ class AuthenticationRequest extends BaseRequest {
    * Include Access Token
    */
   includeAccessToken (response) {
-    let {responseTypes} = this
+    let {responseTypes, params, provider, client, subject, scope} = this
 
-    return new Promise((resolve, reject) => {
-      if (responseTypes.indexOf('token') !== -1) {
-        AccessToken.issue(this, response).then(resolve).catch(reject)
-      } else {
-        resolve(response)
-      }
-    })
+    if (responseTypes.includes('token')) {
+      let alg = client['access_token_signed_response_alg'] || 'RS256'
+      let key = provider.keys.token.signing[alg].privateKey
+      let kid = provider.keys.token.signing[alg].publicJwk.kid
+      let iss = provider.issuer
+      let aud = client['client_id']
+      let sub = subject['_id']
+      let jti = this.random()
+      let iat = Math.floor(Date.now() / 1000)
+      let max = parseInt(params['max_age']) || client['default_max_age'] || 3600
+      let exp = iat + max
+      let header = {alg, kid}
+      let payload = {iss, aud, sub, exp, iat, jti, scope}
+      let jwt = new AccessToken({header, payload, key})
+
+      // encode the JWT
+      return jwt.encode()
+
+        // set the response properties
+        .then(compact => {
+          response['access_token'] = compact
+          response['token_type'] = 'Bearer'
+          response['expires_in'] = max
+
+          if (responseTypes.includes('code')) {
+            response['refresh_token'] = this.random()
+          }
+        })
+
+        // store access token
+        .then(() => {
+          let {header, payload} = jwt
+          let {signature} = jwt
+
+          return provider.backend.put('tokens', `${jti}`, {
+            header, payload, signature
+          })
+        })
+
+        // store optional refresh token
+        .then(() => {
+          let {header, payload} = jwt
+          let {signature} = jwt
+          let refresh = response['refresh_token']
+
+          if (refresh) {
+            return provider.backend.put('refresh', `${refresh}`, {
+              header, payload, signature
+            })
+          }
+        })
+
+        // resolve the response
+        .then(() => response)
+    }
+
+    return response
   }
 
   /**
    * Include Authorization Code
    */
   includeAuthorizationCode (response) {
-    let {responseTypes} = this
+    let {responseTypes, params, scope} = this
+    let {provider, client, subject} = this
+    let {backend} = provider
 
-    return new Promise((resolve, reject) => {
-      if (responseTypes.indexOf('code') !== -1) {
-        AuthorizationCode.issue(this, response).then(resolve).catch(reject)
-      } else {
-        resolve(response)
-      }
-    })
+    if (responseTypes.includes('code')) {
+      let code = this.random(16)
+      let sub = subject['_id']
+      let aud = client['client_id']
+      let iat = Math.floor(Date.now() / 1000)
+      let exp = iat + 600
+      let max = params['max_age'] || client['default_max_age']
+      let nonce = params['nonce']
+      let redirect_uri = params['redirect_uri']
+
+      let ac = new AuthorizationCode({
+        code, sub, aud, exp, max, scope, nonce, redirect_uri
+      })
+
+      return backend.put('codes', code, ac)
+        .then(() => {
+          response['code'] = code
+          return response
+        })
+    }
+
+    return response
   }
 
   /**
    * Include ID Token
    */
   includeIDToken (response) {
-    let {responseTypes} = this
+    let {responseTypes, params, provider, client, subject} = this
 
-    return new Promise((resolve, reject) => {
-      if (responseTypes.indexOf('id_token') !== -1) {
-        IDToken.issue(this, response).then(resolve).catch(reject)
-      } else {
-        resolve(response)
-      }
-    })
+    if (responseTypes.includes('id_token')) {
+      let alg = client['id_token_signed_response_alg'] || 'RS256'
+      let key = provider.keys['id_token'].signing[alg].privateKey
+      let kid = provider.keys['id_token'].signing[alg].publicJwk.kid
+      let iss = provider.issuer
+      let aud = client['client_id']
+      let sub = subject['_id']
+      let iat = Math.floor(Date.now() / 1000)
+      let max = parseInt(params['max_age']) || client['default_max_age'] || 3600
+      let exp = iat + max
+      let nonce = params.nonce
+      let header = {alg, kid}
+      let payload = {iss, sub, aud, exp, iat, nonce}
+      let jwt = new IDToken({header, payload, key})
+
+      // at_hash
+      // c_hash
+
+      // encode the JWT
+      return jwt.encode().then(compact => {
+        response['id_token'] = compact
+        return response
+      })
+    }
+
+    return response
   }
 
   /**
@@ -297,6 +389,11 @@ class AuthenticationRequest extends BaseRequest {
    */
   includeSessionState (response) {
     // ...
+  }
+
+  random (byteLen) {
+    let value = crypto.getRandomValues(new Uint8Array(byteLen))
+    return Buffer.from(value).toString('hex')
   }
 }
 
