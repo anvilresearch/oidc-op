@@ -70,17 +70,17 @@ const schema = new JSONSchema({
 
     '^profile': {
       type: 'string',
-      format: 'url'
+      //format: 'url'
     },
 
     '^picture': {
       type: 'string',
-      format: 'url'
+      //format: 'url'
     },
 
     '^website': {
       type: 'string',
-      format: 'url'
+      //format: 'url'
     },
 
     '^email': {
@@ -99,7 +99,7 @@ const schema = new JSONSchema({
     '^birthdate': {
       type: 'string',
       // MOVE THIS REGEXP TO A CONSTANT OR OBJ SOMEWHERE AND TEST THE FUCK OUT OF IT
-      format: /^\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])$/
+      //format: /^\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])$/
     },
 
     // TODO
