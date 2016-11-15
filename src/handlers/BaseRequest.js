@@ -4,6 +4,7 @@
  * Dependencies
  * @ignore
  */
+const crypto = require('webcrypto')
 const qs = require('qs')
 
 /**
@@ -153,6 +154,16 @@ class BaseRequest {
     res.status(500).send('Internal Server Error')
   }
 
+
+
+  /**
+   * TODO
+   * This doesn't belong here.
+   */
+  random (byteLen) {
+    let value = crypto.getRandomValues(new Uint8Array(byteLen))
+    return Buffer.from(value).toString('hex')
+  }
 }
 
 /**
