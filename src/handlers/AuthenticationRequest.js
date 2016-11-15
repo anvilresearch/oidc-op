@@ -4,7 +4,6 @@
  * Dependencies
  * @ignore
  */
-const crypto = require('webcrypto')
 const BaseRequest = require('./BaseRequest')
 const AccessToken = require('../AccessToken')
 const AuthorizationCode = require('../AuthorizationCode')
@@ -257,62 +256,10 @@ class AuthenticationRequest extends BaseRequest {
    * Include Access Token
    */
   includeAccessToken (response) {
-    let {responseTypes, params, provider, client, subject, scope} = this
+    let {responseTypes} = this
 
     if (responseTypes.includes('token')) {
-      let alg = client['access_token_signed_response_alg'] || 'RS256'
-      let key = provider.keys.token.signing[alg].privateKey
-      let kid = provider.keys.token.signing[alg].publicJwk.kid
-      let iss = provider.issuer
-      let aud = client['client_id']
-      let sub = subject['_id']
-      let jti = this.random()
-      let iat = Math.floor(Date.now() / 1000)
-      let max = parseInt(params['max_age']) || client['default_max_age'] || 3600
-      let exp = iat + max
-      let header = {alg, kid}
-      let payload = {iss, aud, sub, exp, iat, jti, scope}
-      let jwt = new AccessToken({header, payload, key})
-
-      // encode the JWT
-      return jwt.encode()
-
-        // set the response properties
-        .then(compact => {
-          response['access_token'] = compact
-          response['token_type'] = 'Bearer'
-          response['expires_in'] = max
-
-          if (responseTypes.includes('code')) {
-            response['refresh_token'] = this.random()
-          }
-        })
-
-        // store access token
-        .then(() => {
-          let {header, payload} = jwt
-          let {signature} = jwt
-
-          return provider.backend.put('tokens', `${jti}`, {
-            header, payload, signature
-          })
-        })
-
-        // store optional refresh token
-        .then(() => {
-          let {header, payload} = jwt
-          let {signature} = jwt
-          let refresh = response['refresh_token']
-
-          if (refresh) {
-            return provider.backend.put('refresh', `${refresh}`, {
-              header, payload, signature
-            })
-          }
-        })
-
-        // resolve the response
-        .then(() => response)
+      return AccessToken.issue(this, response)
     }
 
     return response
@@ -354,31 +301,10 @@ class AuthenticationRequest extends BaseRequest {
    * Include ID Token
    */
   includeIDToken (response) {
-    let {responseTypes, params, provider, client, subject} = this
+    let {responseTypes} = this
 
     if (responseTypes.includes('id_token')) {
-      let alg = client['id_token_signed_response_alg'] || 'RS256'
-      let key = provider.keys['id_token'].signing[alg].privateKey
-      let kid = provider.keys['id_token'].signing[alg].publicJwk.kid
-      let iss = provider.issuer
-      let aud = client['client_id']
-      let sub = subject['_id']
-      let iat = Math.floor(Date.now() / 1000)
-      let max = parseInt(params['max_age']) || client['default_max_age'] || 3600
-      let exp = iat + max
-      let nonce = params.nonce
-      let header = {alg, kid}
-      let payload = {iss, sub, aud, exp, iat, nonce}
-      let jwt = new IDToken({header, payload, key})
-
-      // at_hash
-      // c_hash
-
-      // encode the JWT
-      return jwt.encode().then(compact => {
-        response['id_token'] = compact
-        return response
-      })
+      return IDToken.issue(this, response)
     }
 
     return response
@@ -389,11 +315,6 @@ class AuthenticationRequest extends BaseRequest {
    */
   includeSessionState (response) {
     // ...
-  }
-
-  random (byteLen) {
-    let value = crypto.getRandomValues(new Uint8Array(byteLen))
-    return Buffer.from(value).toString('hex')
   }
 }
 
