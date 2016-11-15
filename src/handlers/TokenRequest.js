@@ -5,6 +5,9 @@
  * @ignore
  */
 const BaseRequest = require('./BaseRequest')
+const AccessToken = require('../AccessToken')
+const AuthorizationCode = require('../AuthorizationCode')
+const IDToken = require('../IDToken')
 
 /**
  * TokenRequest
@@ -104,10 +107,10 @@ class TokenRequest extends BaseRequest {
    */
   supportedGrantType () {
     let {params,provider} = this
-    let supportedGrantTypes = provider.supported_grant_types
+    let supportedGrantTypes = provider.grant_types_supported
     let requestedGrantType = params.grant_type
 
-    return supportedGrantTypes.indexOf(requestedGrantType) !== -1
+    return supportedGrantTypes.includes(requestedGrantType)
   }
 
   /**
@@ -175,7 +178,7 @@ class TokenRequest extends BaseRequest {
     }
 
     // Apply the appropriate authentication method
-    return this[method](request)
+    return request[method](request)
   }
 
   /**
@@ -220,27 +223,26 @@ class TokenRequest extends BaseRequest {
       })
     }
 
-    return new Promise((resolve, reject) => {
-      provider.getClient(id).then(client => {
+    return provider.backend.get('clients', id).then(client => {
 
-        // UNKNOWN CLIENT
-        if (!client) {
-          return request.unauthorized({
-            error: 'unauthorized_client',
-            error_description: 'Unknown client identifier'
-          })
-        }
+      // UNKNOWN CLIENT
+      if (!client) {
+        return request.unauthorized({
+          error: 'unauthorized_client',
+          error_description: 'Unknown client identifier'
+        })
+      }
 
-        // MISMATCHING SECRET
-        if (client.client_secret !== secret) {
-          return request.unauthorized({
-            error: 'unauthorized_client',
-            error_description: 'Mismatching client secret'
-          })
-        }
+      // MISMATCHING SECRET
+      if (client.client_secret !== secret) {
+        return request.unauthorized({
+          error: 'unauthorized_client',
+          error_description: 'Mismatching client secret'
+        })
+      }
 
-        resolve(request)
-      })
+      request.client = client
+      return request
     })
   }
 
@@ -358,15 +360,15 @@ class TokenRequest extends BaseRequest {
     let {grantType} = request
 
     if (grantType === 'authorization_code') {
-      return this.authorizationCodeGrant(request)
+      return request.authorizationCodeGrant(request)
     }
 
     if (grantType === 'refresh_token') {
-      return this.refreshTokenGrant(request)
+      return request.refreshTokenGrant(request)
     }
 
     if (grantType === 'client_credentials') {
-      return this.clientCredentialsGrant(request)
+      return request.clientCredentialsGrant(request)
     }
 
     // THIS IS SERIOUS TROUBLE
@@ -383,7 +385,26 @@ class TokenRequest extends BaseRequest {
    * @returns {Promise}
    */
   authorizationCodeGrant (request) {
-    AccessToken.exchange(request).then(this.tokenResponse)
+    Promise.resolve({})
+      .then(request.includeAccessToken.bind(request))
+      .then(request.includeIDToken.bind(request))
+      .then(response => {
+        request.res.json(response)
+      })
+  }
+
+  /**
+   * includeAccessToken
+   */
+  includeAccessToken (response) {
+    return AccessToken.issue(this, response)
+  }
+
+  /**
+   * includeIDToken
+   */
+  includeIDToken (response) {
+    return IDToken.issue(this, response)
   }
 
   /**
@@ -429,61 +450,60 @@ class TokenRequest extends BaseRequest {
   verifyAuthorizationCode (request) {
     let {params, client, provider, grantType} = request
 
-    return new Promise((resolve, reject) => {
-      if (grantType === 'authorization_code') {
-        provider.getAuthorizationCode(params.code).then(authorizationCode => {
+    if (grantType === 'authorization_code') {
+      return provider.backend.get('codes', params.code).then(authorizationCode => {
 
-          // UNKNOWN AUTHORIZATION CODE
-          if (!authorizationCode) {
-            return request.badRequest({
-              error: 'invalid_grant',
-              error_description: 'Authorization not found'
-            })
-          }
+        // UNKNOWN AUTHORIZATION CODE
+        if (!authorizationCode) {
+          return request.badRequest({
+            error: 'invalid_grant',
+            error_description: 'Authorization not found'
+          })
+        }
 
-          // AUTHORIZATION CODE HAS BEEN PREVIOUSLY USED
-          if (authorizationCode.used === true) {
-            return request.badRequest({
-              error: 'invalid_grant',
-              error_description: 'Authorization code invalid'
-            })
-          }
+        // AUTHORIZATION CODE HAS BEEN PREVIOUSLY USED
+        if (authorizationCode.used === true) {
+          return request.badRequest({
+            error: 'invalid_grant',
+            error_description: 'Authorization code invalid'
+          })
+        }
 
-          // AUTHORIZATION CODE IS EXPIRED
-          if (authorizationCode.isExpired()) {
-            return request.badRequest({
-              error: 'invalid_grant',
-              error_description: 'Authorization code expired'
-            })
-          }
+        // AUTHORIZATION CODE IS EXPIRED
+        if (authorizationCode.exp < Math.floor(Date.now() / 1000)) {
+          return request.badRequest({
+            error: 'invalid_grant',
+            error_description: 'Authorization code expired'
+          })
+        }
 
-          // MISMATCHING REDIRECT URI
-          if (authorizationCode.redirect_uri !== params.redirect_uri) {
-            return request.badRequest({
-              error: 'invalid_grant',
-              error_description: 'Mismatching redirect uri'
-            })
-          }
+        // MISMATCHING REDIRECT URI
+        if (authorizationCode.redirect_uri !== params.redirect_uri) {
+          return request.badRequest({
+            error: 'invalid_grant',
+            error_description: 'Mismatching redirect uri'
+          })
+        }
 
-          // MISMATCHING CLIENT ID
-          if (authorizationCode.client_id !== client._id) {
-            return request.badRequest({
-              error: 'invalid_grant',
-              error_description: 'Mismatching client id'
-            })
-          }
+        // MISMATCHING CLIENT ID
+        if (authorizationCode.aud !== client.client_id) {
+          return request.badRequest({
+            error: 'invalid_grant',
+            error_description: 'Mismatching client id'
+          })
+        }
 
-          // TODO mismatching user id?
+        // TODO mismatching user id?
 
-          request.code = authorizationCode
+        request.code = authorizationCode
 
-          // UPDATE AUTHORIZATION CODE TO REFLECT THAT IT'S BEEN USED
-          authorizationCode.use().then(() => Promise.resolve(request))
-        })
-      } else {
-        resolve(request)
-      }
-    })
+        // TODO UPDATE AUTHORIZATION CODE TO REFLECT THAT IT'S BEEN USED
+        //authorizationCode.use().then(() => Promise.resolve(request))
+        return request
+      })
+    }
+
+    return request
   }
 }
 
