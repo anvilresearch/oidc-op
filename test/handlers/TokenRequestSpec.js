@@ -76,7 +76,7 @@ describe('TokenRequest', () => {
     beforeEach(() => {
       res = {}
       host = {}
-      provider = { host, supported_grant_types: ['authorization_code'] }
+      provider = { host, grant_types_supported: ['authorization_code'] }
     })
 
     it('should return true with a supported response type parameter', () => {
@@ -133,7 +133,7 @@ describe('TokenRequest', () => {
         req = { method: 'POST', body: params }
         res = {}
         host = {}
-        provider = { host, supported_grant_types: ['authorization_code'] }
+        provider = { host, grant_types_supported: ['authorization_code'] }
         request = new TokenRequest(req, res, provider)
         request.validate(request)
       })
@@ -159,7 +159,7 @@ describe('TokenRequest', () => {
         req = { method: 'POST', body: params }
         res = {}
         host = {}
-        provider = { host, supported_grant_types: ['authorization_code'] }
+        provider = { host, grant_types_supported: ['authorization_code'] }
         request = new TokenRequest(req, res, provider)
         request.validate(request)
       })
@@ -185,7 +185,7 @@ describe('TokenRequest', () => {
         req = { method: 'POST', body: params }
         res = {}
         host = {}
-        provider = { host, supported_grant_types: ['authorization_code'] }
+        provider = { host, grant_types_supported: ['authorization_code'] }
         request = new TokenRequest(req, res, provider)
         request.validate(request)
       })
@@ -211,7 +211,7 @@ describe('TokenRequest', () => {
         req = { method: 'POST', body: params }
         res = {}
         host = {}
-        provider = { host, supported_grant_types: ['refresh_token'] }
+        provider = { host, grant_types_supported: ['refresh_token'] }
         request = new TokenRequest(req, res, provider)
         request.validate(request)
       })
@@ -252,7 +252,7 @@ describe('TokenRequest', () => {
         }
         let res = {}
         let host = {}
-        let provider = { host, supported_grant_types: ['client_credentials'] }
+        let provider = { host, grant_types_supported: ['client_credentials'] }
 
         request = new TokenRequest(req, res, provider)
         request.authenticateClient(request)
@@ -291,7 +291,7 @@ describe('TokenRequest', () => {
 
         let res = {}
         let host = {}
-        let provider = { host, supported_grant_types: ['client_credentials'] }
+        let provider = { host, grant_types_supported: ['client_credentials'] }
 
         request = new TokenRequest(req, res, provider)
         request.authenticateClient(request)
@@ -328,7 +328,7 @@ describe('TokenRequest', () => {
 
         let res = {}
         let host = {}
-        let provider = { host, supported_grant_types: ['client_credentials'] }
+        let provider = { host, grant_types_supported: ['client_credentials'] }
 
         request = new TokenRequest(req, res, provider)
         request.authenticateClient(request)
@@ -364,7 +364,7 @@ describe('TokenRequest', () => {
 
         let res = {}
         let host = {}
-        let provider = { host, supported_grant_types: ['client_credentials'] }
+        let provider = { host, grant_types_supported: ['client_credentials'] }
 
         request = new TokenRequest(req, res, provider)
         request.authenticateClient(request)
@@ -401,7 +401,7 @@ describe('TokenRequest', () => {
 
         let res = {}
         let host = {}
-        let provider = { host, supported_grant_types: ['client_credentials'] }
+        let provider = { host, grant_types_supported: ['client_credentials'] }
 
         request = new TokenRequest(req, res, provider)
         request.authenticateClient(request)
@@ -436,7 +436,7 @@ describe('TokenRequest', () => {
 
         let res = {}
         let host = {}
-        let provider = { host, supported_grant_types: ['client_credentials'] }
+        let provider = { host, grant_types_supported: ['client_credentials'] }
 
         request = new TokenRequest(req, res, provider)
         request.authenticateClient(request)
@@ -474,7 +474,7 @@ describe('TokenRequest', () => {
 
         let res = {}
         let host = {}
-        let provider = { host, supported_grant_types: ['client_credentials'] }
+        let provider = { host, grant_types_supported: ['client_credentials'] }
 
         request = new TokenRequest(req, res, provider)
         request.authenticateClient(request)
@@ -508,7 +508,7 @@ describe('TokenRequest', () => {
 
         let res = {}
         let host = {}
-        let provider = { host, supported_grant_types: ['client_credentials'] }
+        let provider = { host, grant_types_supported: ['client_credentials'] }
 
         request = new TokenRequest(req, res, provider)
         request.authenticateClient(request)
@@ -542,7 +542,7 @@ describe('TokenRequest', () => {
 
         let res = {}
         let host = {}
-        let provider = { host, supported_grant_types: ['client_credentials'] }
+        let provider = { host, grant_types_supported: ['client_credentials'] }
 
         request = new TokenRequest(req, res, provider)
         request.authenticateClient(request)
@@ -678,7 +678,7 @@ describe('TokenRequest', () => {
         let res = {}
         let provider = {
           host: {},
-          getClient: () => Promise.resolve(null)
+          backend: { get: () => Promise.resolve(null) }
         }
 
         request = new TokenRequest(req, res, provider)
@@ -714,7 +714,7 @@ describe('TokenRequest', () => {
         let res = {}
         let provider = {
           host: {},
-          getClient: () => Promise.resolve({ client_secret: 'secret' })
+          backend: { get: () => Promise.resolve({ client_secret: 'secret' }) }
         }
 
         request = new TokenRequest(req, res, provider)
@@ -750,7 +750,7 @@ describe('TokenRequest', () => {
         let res = {}
         let provider = {
           host: {},
-          getClient: () => Promise.resolve({ client_secret: 'secret' })
+          backend: { get: () => Promise.resolve({ client_secret: 'secret' }) }
         }
 
         request = new TokenRequest(req, res, provider)
@@ -856,7 +856,7 @@ describe('TokenRequest', () => {
         let res = {}
         let provider = {
           host: {},
-          getClient: () => Promise.resolve(null)
+          backend: { get: () => Promise.resolve(null) }
         }
 
         request = new TokenRequest(req, res, provider)
@@ -892,7 +892,7 @@ describe('TokenRequest', () => {
         let res = {}
         let provider = {
           host: {},
-          getClient: () => Promise.resolve({ client_secret: 'secret' })
+          backend: { get: () => Promise.resolve({ client_secret: 'secret' }) }
         }
 
         request = new TokenRequest(req, res, provider)
