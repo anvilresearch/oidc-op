@@ -92,7 +92,7 @@ describe('AuthenticationRequest', () => {
     beforeEach(() => {
       res = {}
       host = {}
-      provider = { host, supported_response_types: ['code id_token'] }
+      provider = { host, response_types_supported: ['code id_token'] }
     })
 
     it('should return true with a supported response type parameter', () => {
@@ -119,7 +119,7 @@ describe('AuthenticationRequest', () => {
     beforeEach(() => {
       res = {}
       host = {}
-      provider = { host, supported_response_modes: ['query', 'fragment'] }
+      provider = { host, response_modes_supported: ['query', 'fragment'] }
     })
 
     it('should return true with an undefined response mode parameter', () => {
@@ -241,7 +241,7 @@ describe('AuthenticationRequest', () => {
         host = {}
         provider = {
           host,
-          getClient: sinon.stub().returns(Promise.resolve(null))
+          backend: { get: sinon.stub().returns(Promise.resolve(null)) }
         }
         request = new AuthenticationRequest(req, res, provider)
         request.validate(request)
@@ -271,7 +271,7 @@ describe('AuthenticationRequest', () => {
         client = { redirect_uris: ['https://example.com/callback'] }
         provider = {
           host,
-          getClient: sinon.stub().returns(Promise.resolve(client))
+          backend: { get: sinon.stub().returns(Promise.resolve(client)) }
         }
         request = new AuthenticationRequest(req, res, provider)
         request.validate(request)
@@ -300,11 +300,13 @@ describe('AuthenticationRequest', () => {
         host = {}
         provider = {
           host,
-          getClient: sinon.stub().returns(Promise.resolve({
-            redirect_uris: [
-              'https://example.com/callback'
-            ]
-          }))
+          backend: {
+            get: sinon.stub().returns(Promise.resolve({
+              redirect_uris: [
+                'https://example.com/callback'
+              ]
+            }))
+          }
         }
         request = new AuthenticationRequest(req, res, provider)
         request.validate(request)
@@ -337,11 +339,13 @@ describe('AuthenticationRequest', () => {
         host = {}
         provider = {
           host,
-          getClient: sinon.stub().returns(Promise.resolve({
-            redirect_uris: [
-              'https://example.com/callback'
-            ]
-          }))
+          backend: {
+            get: sinon.stub().returns(Promise.resolve({
+              redirect_uris: [
+                'https://example.com/callback'
+              ]
+            }))
+          }
         }
         request = new AuthenticationRequest(req, res, provider)
         request.validate(request)
@@ -375,11 +379,13 @@ describe('AuthenticationRequest', () => {
         host = {}
         provider = {
           host,
-          getClient: sinon.stub().returns(Promise.resolve({
-            redirect_uris: [
-              'https://example.com/callback'
-            ]
-          }))
+          backend: {
+            get: sinon.stub().returns(Promise.resolve({
+              redirect_uris: [
+                'https://example.com/callback'
+              ]
+            }))
+          }
         }
         request = new AuthenticationRequest(req, res, provider)
         request.validate(request)
@@ -413,11 +419,13 @@ describe('AuthenticationRequest', () => {
         host = {}
         provider = {
           host,
-          getClient: sinon.stub().returns(Promise.resolve({
-            redirect_uris: [
-              'https://example.com/callback'
-            ]
-          }))
+          backend: {
+            get: sinon.stub().returns(Promise.resolve({
+              redirect_uris: [
+                'https://example.com/callback'
+              ]
+            }))
+          }
         }
         request = new AuthenticationRequest(req, res, provider)
         request.validate(request)
@@ -452,12 +460,14 @@ describe('AuthenticationRequest', () => {
         host = {}
         provider = {
           host,
-          supported_response_types: ['code', 'id_token token'],
-          getClient: sinon.stub().returns(Promise.resolve({
-            redirect_uris: [
-              'https://example.com/callback'
-            ]
-          }))
+          response_types_supported: ['code', 'id_token token'],
+          backend: {
+            get: sinon.stub().returns(Promise.resolve({
+              redirect_uris: [
+                'https://example.com/callback'
+              ]
+            }))
+          }
         }
         request = new AuthenticationRequest(req, res, provider)
         request.validate(request)
@@ -493,13 +503,15 @@ describe('AuthenticationRequest', () => {
         host = {}
         provider = {
           host,
-          supported_response_types: ['code', 'id_token token'],
-          supported_response_modes: ['query', 'fragment'],
-          getClient: sinon.stub().returns(Promise.resolve({
-            redirect_uris: [
-              'https://example.com/callback'
-            ]
-          }))
+          response_types_supported: ['code', 'id_token token'],
+          response_modes_supported: ['query', 'fragment'],
+          backend: {
+            get: sinon.stub().returns(Promise.resolve({
+              redirect_uris: [
+                'https://example.com/callback'
+              ]
+            }))
+          }
         }
         request = new AuthenticationRequest(req, res, provider)
         request.validate(request)
@@ -534,9 +546,11 @@ describe('AuthenticationRequest', () => {
         client = { redirect_uris: 'https://example.com/callback' }
         provider = {
           host,
-          supported_response_types: ['code', 'id_token token'],
-          supported_response_modes: ['query', 'fragment'],
-          getClient: sinon.stub().returns(Promise.resolve(client))
+          response_types_supported: ['code', 'id_token token'],
+          response_modes_supported: ['query', 'fragment'],
+          backend: {
+            get: sinon.stub().returns(Promise.resolve(client))
+          }
         }
         request = new AuthenticationRequest(req, res, provider)
         promise = request.validate(request)
@@ -558,13 +572,12 @@ describe('AuthenticationRequest', () => {
 
       before(() => {
         sinon.stub(AuthenticationRequest.prototype, 'allow')
-        req = { method: 'GET', query: { authorize: true } }
+        req = {}
         res = {}
         host = {}
-        provider = {
-          host,
-        }
+        provider = {host}
         request = new AuthenticationRequest(req, res, provider)
+        request.consent = true
         promise = request.authorize(request)
       })
 
@@ -607,7 +620,7 @@ describe('AuthenticationRequest', () => {
     before(() => {
       sinon.stub(AuthenticationRequest.prototype, 'redirect')
       let request = new AuthenticationRequest({}, {}, { host: {} })
-      request.deny()
+      request.deny(request)
     })
 
     after(() => {
