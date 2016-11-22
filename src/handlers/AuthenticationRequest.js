@@ -244,11 +244,8 @@ class AuthenticationRequest extends BaseRequest {
    * Handle user's rejection of the client.
    */
   deny (request) {
-    let {params} = request
-    let {state} = params
-
     this.redirect({
-      error: 'access_denied', state
+      error: 'access_denied'
     })
   }
 
