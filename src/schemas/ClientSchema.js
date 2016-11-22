@@ -246,7 +246,8 @@ const schema = new JSONSchema({
         format: 'uri'
       }
     }
-  }
+  },
+  required: ['redirect_uris']
 })
 
 /**

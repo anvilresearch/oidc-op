@@ -31,15 +31,15 @@ describe('OpenID Connect Client Schema', () => {
    * Authorization Server. These can range from human-facing display strings,
    * such as a Client name, to items that impact the security of the protocol,
    * such as the list of valid redirect URIs.
-   * 
+   *
    * The Client Metadata values are used in two ways:
    * as input values to registration requests, and
    * as output values in registration responses and read responses.
-   * 
+   *
    * These Client Metadata values are used by OpenID Connect:
    */
-  
-  /** 
+
+  /**
    * redirect_uris
    *   REQUIRED. Array of Redirection URI values used by the Client. One of
    *   these registered Redirection URI values MUST exactly match the
@@ -48,7 +48,7 @@ describe('OpenID Connect Client Schema', () => {
    *   (Simple String Comparison).
    */
   it('should require "redirect_uris"', () => {
-    properties.redirect_uris.required.should.equal(true)
+    ClientSchema.required.should.include('redirect_uris')
   })
 
   it('should define type of "redirect_uris"', () => {
@@ -56,11 +56,11 @@ describe('OpenID Connect Client Schema', () => {
   })
 
   it('should define format of "redirect_uris"', () => {
-    properties.redirect_uris.format.should.equal('uri')
+    properties.redirect_uris.items.format.should.equal('uri')
   })
-  
+
   /**
-   *   
+   *
    * response_types
    *   OPTIONAL. JSON array containing a list of the OAuth 2.0 response_type
    *   values that the Client is declaring that it will restrict itself to
@@ -70,9 +70,9 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "response_types"', () => {
     properties.response_types.type.should.equal('array')
   })
-  
+
   it('should define enum of "response_types"', () => {
-    properties.response_types.enum.should.eql([
+    properties.response_types.items.enum.should.eql([
       'code',
       'code token',
       'code id_token',
@@ -88,8 +88,8 @@ describe('OpenID Connect Client Schema', () => {
       'code'
     ])
   })
-  
-  /**  
+
+  /**
    * grant_types
    *   OPTIONAL. JSON array containing a list of the OAuth 2.0 Grant Types that
    *   the Client is declaring that it will restrict itself to using. The Grant
@@ -103,9 +103,9 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "grant_types"', () => {
     properties.grant_types.type.should.equal('array')
   })
-  
+
   it('should define enum of "grant_types"', () => {
-    properties.grant_types.enum.should.eql([
+    properties.grant_types.items.enum.should.eql([
       'authorization_code',
       'implicit',
       'refresh_token',
@@ -118,7 +118,7 @@ describe('OpenID Connect Client Schema', () => {
       'authorization_code'
     ])
   })
-  
+
   /**
    *   The following table lists the correspondence between response_type values
    *   that the Client will use and grant_type values that MUST be included in
@@ -129,11 +129,11 @@ describe('OpenID Connect Client Schema', () => {
    *     code id_token: authorization_code, implicit
    *     code token: authorization_code, implicit
    *     code token id_token: authorization_code, implicit
-   * 
+   *
    *   If omitted, the default is that the Client will use only the
    *   authorization_code Grant Type.
    */
-  
+
   /**
    * application_type
    *   OPTIONAL. Kind of the application. The default, if omitted, is web. The
@@ -152,7 +152,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "application_type"', () => {
     properties.application_type.type.should.equal('string')
   })
-  
+
   it('should define enum of "application_type"', () => {
     properties.application_type.enum.should.eql([
       'native',
@@ -163,7 +163,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define default of "application_type"', () => {
     properties.application_type.default.should.eql('web')
   })
-  
+
   /**
    * contacts
    *   OPTIONAL. Array of e-mail addresses of people responsible for this
@@ -175,9 +175,9 @@ describe('OpenID Connect Client Schema', () => {
   })
 
   it('should define format of "contacts"', () => {
-    properties.contacts.format.should.equal('email')
+    properties.contacts.items.format.should.equal('email')
   })
-  
+
   /**
    * client_name
    *   OPTIONAL. Name of the Client to be presented to the End-User. If desired,
@@ -187,7 +187,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "client_name"', () => {
     properties.client_name.type.should.equal('string')
   })
-  
+
   /**
    * logo_uri
    *   OPTIONAL. URL that references a logo for the Client application. If
@@ -203,7 +203,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define format of "logo_uri"', () => {
     properties.logo_uri.format.should.equal('uri')
   })
-  
+
   /**
    * client_uri
    *   OPTIONAL. URL of the home page of the Client. The value of this field
@@ -219,7 +219,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define format of "client_uri"', () => {
     properties.client_uri.format.should.equal('uri')
   })
-  
+
   /**
    * policy_uri
    *   OPTIONAL. URL that the Relying Party Client provides to the End-User to
@@ -236,7 +236,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define format of "policy_uri"', () => {
     properties.policy_uri.format.should.equal('uri')
   })
-  
+
   /**
    * tos_uri
    *   OPTIONAL. URL that the Relying Party Client provides to the End-User to
@@ -253,7 +253,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define format of "tos_uri"', () => {
     properties.tos_uri.format.should.equal('uri')
   })
-  
+
   /**
    * jwks_uri
    *   OPTIONAL. URL for the Client's JSON Web Key Set [JWK] document. If the
@@ -276,7 +276,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define format of "jwks_uri"', () => {
     properties.jwks_uri.format.should.equal('uri')
   })
-  
+
   /**
    * jwks
    *   OPTIONAL. Client's JSON Web Key Set [JWK] document, passed by value. The
@@ -294,7 +294,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "jwks"', () => {
     properties.jwks.type.should.equal('object')
   })
-  
+
   /**
    * sector_identifier_uri
    *   OPTIONAL. URL using the https scheme to be used in calculating
@@ -311,7 +311,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define format of "sector_identifier_uri"', () => {
     properties.sector_identifier_uri.format.should.equal('uri')
   })
-  
+
   /**
    * subject_type
    *   OPTIONAL. subject_type requested for responses to this Client. The
@@ -322,14 +322,14 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "subject_type"', () => {
     properties.subject_type.type.should.equal('string')
   })
-  
+
   it('should define enum of "subject_type"', () => {
     properties.subject_type.enum.should.eql([
       'pairwise',
       'public'
     ])
   })
-  
+
   /**
    * id_token_signed_response_alg
    *   OPTIONAL. JWS alg algorithm [JWA] REQUIRED for signing the ID Token
@@ -355,7 +355,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "id_token_encrypted_response_alg"', () => {
     properties.id_token_encrypted_response_alg.type.should.equal('string')
   })
-  
+
   /**
    * id_token_encrypted_response_enc
    *   OPTIONAL. JWE enc algorithm [JWA] REQUIRED for encrypting the ID Token
@@ -367,7 +367,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "id_token_encrypted_response_enc"', () => {
     properties.id_token_encrypted_response_enc.type.should.equal('string')
   })
-  
+
   /**
    * userinfo_signed_response_alg
    *   OPTIONAL. JWS alg algorithm [JWA] REQUIRED for signing UserInfo
@@ -379,7 +379,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "userinfo_signed_response_alg"', () => {
     properties.userinfo_signed_response_alg.type.should.equal('string')
   })
-  
+
   /**
    * userinfo_encrypted_response_alg
    *   OPTIONAL. JWE [JWE] alg algorithm [JWA] REQUIRED for encrypting UserInfo
@@ -391,7 +391,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "userinfo_encrypted_response_alg"', () => {
     properties.userinfo_encrypted_response_alg.type.should.equal('string')
   })
-  
+
   /**
    * userinfo_encrypted_response_enc
    *   OPTIONAL. JWE enc algorithm [JWA] REQUIRED for encrypting UserInfo
@@ -402,7 +402,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "userinfo_encrypted_response_enc"', () => {
     properties.userinfo_encrypted_response_enc.type.should.equal('string')
   })
-  
+
   /**
    * request_object_signing_alg
    *   OPTIONAL. JWS [JWS] alg algorithm [JWA] that MUST be used for signing
@@ -418,7 +418,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "request_object_signing_alg"', () => {
     properties.request_object_signing_alg.type.should.equal('string')
   })
-  
+
   /**
    * request_object_encryption_alg
    *   OPTIONAL. JWE [JWE] alg algorithm [JWA] the RP is declaring that it may
@@ -436,7 +436,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "request_object_encryption_alg"', () => {
     properties.request_object_encryption_alg.type.should.equal('string')
   })
-  
+
   /**
    * request_object_encryption_enc
    *   OPTIONAL. JWE enc algorithm [JWA] the RP is declaring that it may use for
@@ -448,7 +448,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "request_object_encryption_enc"', () => {
     properties.request_object_encryption_enc.type.should.equal('string')
   })
-  
+
   /**
    * token_endpoint_auth_method
    *   OPTIONAL. Requested Client Authentication method for the Token Endpoint.
@@ -462,7 +462,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "token_endpoint_auth_method"', () => {
     properties.token_endpoint_auth_method.type.should.equal('string')
   })
-  
+
   it('should define enum of "token_endpoint_auth_method"', () => {
     properties.token_endpoint_auth_method.enum.should.eql([
         'client_secret_basic',
@@ -477,7 +477,7 @@ describe('OpenID Connect Client Schema', () => {
     properties.token_endpoint_auth_method.default.should
       .equal('client_secret_basic')
   })
-  
+
   /**
    * token_endpoint_auth_signing_alg
    *   OPTIONAL. JWS [JWS] alg algorithm [JWA] that MUST be used for signing the
@@ -491,7 +491,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "token_endpoint_auth_signing_alg"', () => {
     properties.token_endpoint_auth_signing_alg.type.should.equal('string')
   })
-  
+
   /**
    * default_max_age
    *   OPTIONAL. Default Maximum Authentication Age. Specifies that the End-User
@@ -503,7 +503,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "default_max_age"', () => {
     properties.default_max_age.type.should.equal('number')
   })
-  
+
   /**
    * require_auth_time
    *   OPTIONAL. Boolean value specifying whether the auth_time Claim in the ID
@@ -516,7 +516,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "require_auth_time"', () => {
     properties.require_auth_time.type.should.equal('boolean')
   })
-  
+
   /**
    * default_acr_values
    *   OPTIONAL. Default requested Authentication Context Class Reference
@@ -533,7 +533,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define type of "default_acr_values"', () => {
     properties.default_acr_values.type.should.equal('array')
   })
-  
+
   /**
    * initiate_login_uri
    *   OPTIONAL. URI using the https scheme that a third party can use to
@@ -549,7 +549,7 @@ describe('OpenID Connect Client Schema', () => {
   it('should define format of "initiate_login_uri"', () => {
     properties.initiate_login_uri.format.should.equal('uri')
   })
-  
+
   /**
    * request_uris
    *   OPTIONAL. Array of request_uri values that are pre-registered by the RP
@@ -563,16 +563,16 @@ describe('OpenID Connect Client Schema', () => {
   })
 
   it('should define format of "request_uris"', () => {
-    properties.request_uris.format.should.equal('uri')
+    properties.request_uris.items.format.should.equal('uri')
   })
-  
+
   /**
    * If the contents of the request file could ever change, these URI values
    * SHOULD include the base64url encoded SHA-256 hash value of the file
    * contents referenced by the URI as the value of the URI fragment. If the
    * fragment value used for a URI changes, that signals the server that its
    * cached value for that URI with the old fragment value is no longer valid.
-   * 
+   *
    * Additional Client Metadata parameters MAY also be used. Some are defined by
    * other specifications, such as OpenID Connect Session Management 1.0
    * [OpenID.Session].
