@@ -14,38 +14,37 @@ const schema = new JSONSchema({
 
     issuer: {
       type: 'string',
-      format: 'uri',
-      required: true
+      format: 'uri'
     },
 
     authorization_endpoint: {
       type: 'string',
       format: 'uri',
-      required: true
+      //required: true
     },
 
     token_endpoint: {
       type: 'string',
       format: 'uri',
-      required: true
+      //required: true
     },
 
     userinfo_endpoint: {
       type: 'string',
       format: 'uri',
-      required: true
+      //required: true
     },
 
     jwks_uri: {
       type: 'string',
       format: 'uri',
-      required: true
+      //required: true
     },
 
     registration_endpoint: {
       type: 'string',
       format: 'uri',
-      required: true
+      //required: true
     },
 
     scopes_supported: {
@@ -54,15 +53,6 @@ const schema = new JSONSchema({
 
     response_types_supported: {
       type: 'array',
-      enum: [
-        'code',
-        'code token',
-        'code id_token',
-        'id_token',
-        'id_token token',
-        'code id_token token',
-        'none'
-      ],
       default: [
         'code',
         'code token',
@@ -72,7 +62,17 @@ const schema = new JSONSchema({
         'code id_token token',
         'none'
       ],
-      required: true
+      items: {
+        enum: [
+          'code',
+          'code token',
+          'code id_token',
+          'id_token',
+          'id_token token',
+          'code id_token token',
+          'none'
+        ]
+      }
     },
 
     response_modes_supported: {
@@ -95,12 +95,14 @@ const schema = new JSONSchema({
         'refresh_token',
         'client_credentials'
       ],
-      enum: [
-        'authorization_code',
-        'implicit',
-        'refresh_token',
-        'client_credentials'
-      ]
+      items: {
+        enum: [
+          'authorization_code',
+          'implicit',
+          'refresh_token',
+          'client_credentials'
+        ]
+      }
     },
 
     acr_values_supported: {
@@ -112,11 +114,12 @@ const schema = new JSONSchema({
       default: [
         'public'
       ],
-      enum: [
-        'pairwise',
-        'public'
-      ],
-      required: true
+      items: {
+        enum: [
+          'pairwise',
+          'public'
+        ]
+      }
     },
 
     id_token_signing_alg_values_supported: {
@@ -127,54 +130,57 @@ const schema = new JSONSchema({
         'RS512',
         'none'
       ],
-      enum: [
-        'RS256',
-        'none'
-      ],
-      required: true
+      items: {
+        enum: [
+          'RS256',
+          'none'
+        ]
+      }
     },
 
     id_token_encryption_alg_values_supported: {
       type: 'array',
-      enum: []
+      //enum: []
     },
 
     id_token_encryption_enc_values_supported: {
       type: 'array',
-      enum: []
+      //enum: []
     },
 
     userinfo_signing_alg_values_supported: {
       type: 'array',
-      enum: []
+      //enum: []
     },
 
     userinfo_encryption_alg_values_supported: {
       type: 'array',
-      enum: []
+      //enum: []
     },
 
     userinfo_encryption_enc_values_supported: {
       type: 'array',
-      enum: []
+      //enum: []
     },
 
     request_object_signing_alg_values_supported: {
       type: 'array',
-      enum: [
-        'RS256',
-        'none'
-      ]
+      items: {
+        enum: [
+          'RS256',
+          'none'
+        ]
+      }
     },
 
     request_object_encryption_alg_values_supported: {
       type: 'array',
-      enum: []
+      //enum: []
     },
 
     request_object_encryption_enc_values_supported: {
       type: 'array',
-      enum: []
+      //enum: []
     },
 
     token_endpoint_auth_methods_supported: {
@@ -182,12 +188,14 @@ const schema = new JSONSchema({
       default: [
         'client_secret_basic'
       ],
-      enum: [
-        'client_secret_basic',
-        'client_secret_post',
-        'client_secret_jwt',
-        'private_key_jwt'
-      ]
+      items: {
+        enum: [
+          'client_secret_basic',
+          'client_secret_post',
+          'client_secret_jwt',
+          'private_key_jwt'
+        ]
+      }
     },
 
     token_endpoint_auth_signing_alg_values_supported: {
@@ -195,15 +203,17 @@ const schema = new JSONSchema({
       default: [
         'RS256'
       ],
-      enum: [
-        'RS256'
-      ],
+      items: {
+        enum: [
+          'RS256'
+        ]
+      }
     },
 
     display_values_supported: {
       type: 'array',
       default: [],
-      enum: []
+      //enum: []
     },
 
     claim_types_supported: {
@@ -211,17 +221,17 @@ const schema = new JSONSchema({
       default: [
         'normal'
       ],
-      enum: [
-        'normal',
-        'aggregated',
-        'distributed'
-      ],
+      //enum: [
+      //  'normal',
+      //  'aggregated',
+      //  'distributed'
+      //],
     },
 
     claims_supported: {
       type: 'array',
       default: '',
-      enum: []
+      //enum: []
     },
 
     service_documentation: {
@@ -271,16 +281,29 @@ const schema = new JSONSchema({
 
     check_session_iframe: {
       type: 'string',
-      format: 'uri',
-      required: true
+      format: 'uri'
     },
 
     end_session_endpoint: {
       type: 'string',
-      format: 'uri',
-      required: true
+      format: 'uri'
     }
-  }
+  },
+
+  // required properties
+  required: [
+    'issuer',
+    'authorization_endpoint',
+    'token_endpoint',
+    'userinfo_endpoint',
+    'jwks_uri',
+    'registration_endpoint',
+    'response_types_supported',
+    'subject_types_supported',
+    'id_token_signing_alg_values_supported',
+    'check_session_iframe',
+    'end_session_endpoint'
+  ]
 })
 
 /**

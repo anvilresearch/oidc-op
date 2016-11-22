@@ -22,7 +22,7 @@ const ProviderSchema = require(path.join(cwd, 'src', 'schemas', 'ProviderSchema'
  * Tests
  */
 describe('OpenID Connect Provider Schema', () => {
-  let {properties} = ProviderSchema
+  let {properties, required} = ProviderSchema
 
   /*
    *  3.  OpenID Provider Metadata
@@ -42,7 +42,7 @@ describe('OpenID Connect Provider Schema', () => {
    *    in ID Tokens issued from this Issuer.
    */
   it('should require "issuer"', () => {
-    properties.issuer.required.should.equal(true)
+    required.should.include('issuer')
   })
 
   it('should define type of "issuer"', () => {
@@ -58,7 +58,7 @@ describe('OpenID Connect Provider Schema', () => {
    *    REQUIRED. URL of the OP's OAuth 2.0 Authorization Endpoint [OpenID.Core].
    */
   it('should require "authorization_endpoint"', () => {
-    properties.authorization_endpoint.required.should.equal(true)
+    required.should.include('authorization_endpoint')
   })
 
   it('should define type of "authorization_endpoint"', () => {
@@ -75,7 +75,7 @@ describe('OpenID Connect Provider Schema', () => {
    *    unless only the Implicit Flow is used.
    */
   it('should require "token_endpoint"', () => {
-    properties.token_endpoint.required.should.equal(true)
+    required.should.include('token_endpoint')
   })
 
   it('should define type of "token_endpoint"', () => {
@@ -93,7 +93,7 @@ describe('OpenID Connect Provider Schema', () => {
    *    components.
    */
   it('should require "userinfo_endpoint"', () => {
-    properties.userinfo_endpoint.required.should.equal(true)
+    required.should.include('userinfo_endpoint')
   })
 
   it('should define type of "userinfo_endpoint"', () => {
@@ -119,7 +119,7 @@ describe('OpenID Connect Provider Schema', () => {
    *    certificate.
    */
   it('should require "jwks_uri"', () => {
-    properties.jwks_uri.required.should.equal(true)
+    required.should.include('jwks_uri')
   })
 
   it('should define type of "jwks_uri"', () => {
@@ -136,7 +136,7 @@ describe('OpenID Connect Provider Schema', () => {
    *    [OpenID.Registration].
    */
   it('should require "registration_endpoint"', () => {
-    properties.registration_endpoint.required.should.equal(true)
+    required.should.include('registration_endpoint')
   })
 
   it('should define type of "registration_endpoint"', () => {
@@ -170,11 +170,11 @@ describe('OpenID Connect Provider Schema', () => {
   })
 
   it('should require "response_types_supported"', () => {
-    properties.response_types_supported.required.should.equal(true)
+    required.should.include('response_types_supported')
   })
 
   it('should define enum of "response_types_supported"', () => {
-    properties.response_types_supported.enum.should.eql([
+    properties.response_types_supported.items.enum.should.eql([
       'code',
       'code token',
       'code id_token',
@@ -244,7 +244,7 @@ describe('OpenID Connect Provider Schema', () => {
   })
 
   it('should define enum of "grant_types_supported"', () => {
-    properties.grant_types_supported.enum.should.eql([
+    properties.grant_types_supported.items.enum.should.eql([
       'authorization_code',
       'implicit',
       'refresh_token',
@@ -271,7 +271,7 @@ describe('OpenID Connect Provider Schema', () => {
   })
 
   it('should require "subject_types_supported"', () => {
-    properties.subject_types_supported.required.should.equal(true)
+    required.should.include('subject_types_supported')
   })
 
   it('should define default of "subject_types_supported"', () => {
@@ -281,7 +281,7 @@ describe('OpenID Connect Provider Schema', () => {
   })
 
   it('should define enum of "subject_types_supported"', () => {
-    properties.subject_types_supported.enum.should.eql([
+    properties.subject_types_supported.items.enum.should.eql([
       'pairwise',
       'public'
     ])
@@ -300,18 +300,20 @@ describe('OpenID Connect Provider Schema', () => {
   })
 
   it('should require "id_token_signing_alg_values_supported"', () => {
-    properties.id_token_signing_alg_values_supported.required.should.equal(true)
+    required.should.include('id_token_signing_alg_values_supported')
   })
 
   it('should define default of "id_token_signing_alg_values_supported"', () => {
     properties.id_token_signing_alg_values_supported.default.should.eql([
       'RS256',
+      'RS384',
+      'RS512',
       'none'
     ])
   })
 
   it('should define enum of "id_token_signing_alg_values_supported"', () => {
-    properties.id_token_signing_alg_values_supported.enum.should.eql([
+    properties.id_token_signing_alg_values_supported.items.enum.should.eql([
       'RS256',
       'none'
     ])
@@ -392,7 +394,7 @@ describe('OpenID Connect Provider Schema', () => {
   })
 
   it('should define enum of "request_object_signing_alg_values_supported"', () => {
-    properties.request_object_signing_alg_values_supported.enum.should.eql([
+    properties.request_object_signing_alg_values_supported.items.enum.should.eql([
       'RS256',
       'none'
     ])
@@ -447,7 +449,7 @@ describe('OpenID Connect Provider Schema', () => {
   })
 
   it('should define enum of "token_endpoint_auth_methods_supported"', () => {
-    properties.token_endpoint_auth_methods_supported.enum
+    properties.token_endpoint_auth_methods_supported.items.enum
       .should.eql([
         'client_secret_basic',
         'client_secret_post',
@@ -468,17 +470,14 @@ describe('OpenID Connect Provider Schema', () => {
     properties.token_endpoint_auth_signing_alg_values_supported.type.should.equal('array')
   })
 
-
   it('should define default of "token_endpoint_auth_signing_alg_values_supported"', () => {
-    properties.token_endpoint_auth_signing_alg_values_supported.enum.should.eql([
-      'RS256'
-    ])
+    properties.token_endpoint_auth_signing_alg_values_supported.default
+      .should.eql(['RS256'])
   })
 
   it('should define enum of "token_endpoint_auth_signing_alg_values_supported"', () => {
-    properties.token_endpoint_auth_signing_alg_values_supported.enum.should.eql([
-      'RS256'
-    ])
+    properties.token_endpoint_auth_signing_alg_values_supported.items.enum
+      .should.eql(['RS256'])
   })
 
   /**
@@ -653,5 +652,29 @@ describe('OpenID Connect Provider Schema', () => {
    */
 
   // TODO SESSION SPEC ENDPOINTS (check_session_iframe, end_session_endpoint)
+
+  it('should define type of "check_session_iframe"', () => {
+    properties.check_session_iframe.type.should.equal('string')
+  })
+
+  it('should define format of "check_session_iframe"', () => {
+    properties.check_session_iframe.format.should.equal('uri')
+  })
+
+  it('should require "check_session_iframe"', () => {
+    required.should.include('check_session_iframe')
+  })
+
+  it('should require "end_session_endpoint"', () => {
+    required.should.include('end_session_endpoint')
+  })
+
+  it('should define type of "end_session_endpoint"', () => {
+    properties.end_session_endpoint.type.should.equal('string')
+  })
+
+  it('should define format of "end_session_endpoint"', () => {
+    properties.end_session_endpoint.format.should.equal('uri')
+  })
 
 })
