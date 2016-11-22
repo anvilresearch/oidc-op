@@ -267,7 +267,7 @@ class TokenRequest extends BaseRequest {
     }
 
     return new Promise((resolve, reject) => {
-      provider.getClient(id).then(client => {
+      provider.backend.get(id).then(client => {
 
         // UNKNOWN CLIENT
         if (!client) {
