@@ -100,6 +100,20 @@ class Provider extends JSONDocument {
   }
 
   /**
+   * inject
+   */
+  inject (properties) {
+    Object.keys(properties).forEach(key => {
+      let value = properties[key]
+
+      Object.defineProperty(this, key, {
+        enumerable: false,
+        value
+      })
+    })
+  }
+
+  /**
    * Authorize
    *
    * @param {HTTPRequest} req

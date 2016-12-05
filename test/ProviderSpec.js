@@ -67,6 +67,19 @@ describe('OpenID Connect Provider', () => {
   })
 
   /**
+   * Inject
+   */
+  describe('inject', () => {
+    it('should set non-enumerable property', () => {
+      let provider = new Provider({ issuer: 'https://forge.anvil.io' })
+      expect(provider.injected).to.be.undefined
+      provider.inject({ injected: true })
+      provider.injected.should.equal(true)
+      Object.keys(provider).should.not.include('injected')
+    })
+  })
+
+  /**
    * Authorize
    */
   describe('authorize endpoint', () => {
@@ -209,4 +222,5 @@ describe('OpenID Connect Provider', () => {
         .calledWith(req, res, provider)
     })
   })
+
 })
