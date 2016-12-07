@@ -34,9 +34,12 @@
   "homepage": "https://github.com/anvilresearch/oidc-op#README",
   "dependencies": {
     "base64url": "^1.0.6",
-    "json-document": "0.0.0",
+    "jose": "git://github.com/anvilresearch/jose.git#master",
+    "json-document": "git://github.com/anvilresearch/json-document.git#master",
+    "keychain": "git://github.com/anvilresearch/keychain.git#master",
     "pem-jwk": "^1.5.1",
-    "qs": "^6.2.0"
+    "qs": "^6.2.0",
+    "webcrypto": "git://github.com/anvilresearch/webcrypto.git#master"
   },
   "devDependencies": {
     "chai": "^3.5.0",
