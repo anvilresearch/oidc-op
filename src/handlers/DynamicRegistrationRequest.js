@@ -40,6 +40,10 @@ class DynamicRegistrationRequest extends BaseRequest {
   validate (request) {
     let registration = request.req.body
 
+    if (!registration) {
+      throw new Error('Missing registration request body')
+    }
+
     // generate a client id unless one is provided
     if (!registration['client_id']) {
       registration['client_id'] = request.identifier()
