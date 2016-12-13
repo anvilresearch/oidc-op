@@ -27,7 +27,7 @@ class AccessToken extends JWT {
     let key = keys.token.signing[alg].privateKey
     let kid = keys.token.signing[alg].publicJwk.kid
     let iss = issuer
-    let jti = request.random()
+    let jti = request.random(8)
     let iat = Math.floor(Date.now() / 1000)
     let aud, sub, max, scope
 
