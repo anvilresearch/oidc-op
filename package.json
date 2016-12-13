@@ -2,7 +2,7 @@
   "name": "oidc-op",
   "version": "0.0.0",
   "description": "OpenID Connect Provider",
-  "main": "index.js",
+  "main": "src/index.js",
   "directories": {
     "test": "test"
   },
