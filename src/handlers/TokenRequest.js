@@ -55,6 +55,9 @@ class TokenRequest extends BaseRequest {
 
   /**
    * Validate Request
+   *
+   * @param request {TokenRequest}
+   * @returns {Promise<TokenRequest>}
    */
   validate (request) {
     let {params,provider} = request
@@ -104,6 +107,7 @@ class TokenRequest extends BaseRequest {
 
   /**
    * Supported Grant Type
+   * @returns {Boolean}
    */
   supportedGrantType () {
     let {params,provider} = this
@@ -115,6 +119,9 @@ class TokenRequest extends BaseRequest {
 
   /**
    * Authenticate Client
+   *
+   * @param request {TokenRequest}
+   * @returns {Promise<TokenRequest>}
    */
   authenticateClient (request) {
     let method
@@ -188,7 +195,7 @@ class TokenRequest extends BaseRequest {
    * HTTP Basic Authentication of client using client_id and client_secret as
    * username and password.
    * @param {TokenRequest} request
-   * @returns {Promise}
+   * @returns {Promise<TokenRequest>}
    */
   clientSecretBasic (request) {
     let {req:{headers},provider} = request
@@ -253,7 +260,7 @@ class TokenRequest extends BaseRequest {
    * Authentication of client using client_id and client_secret as HTTP POST
    * body parameters.
    * @param {TokenRequest} request
-   * @returns {Promise}
+   * @returns {Promise<TokenRequest>}
    */
   clientSecretPost (request) {
     let {params: {client_id: id, client_secret: secret}, provider} = request
@@ -294,6 +301,8 @@ class TokenRequest extends BaseRequest {
    * Client Secret JWT Authentication
    *
    * TODO RTFS
+   * @param request {TokenRequest}
+   * @returns {Promise<TokenRequest>}
    */
   clientSecretJWT (request) {
     let { req: { body: { client_assertion: jwt } }, provider} = request
@@ -354,7 +363,7 @@ class TokenRequest extends BaseRequest {
    * Grant
    *
    * @param {TokenRequest} request
-   * @returns {Promise}
+   * @returns {Promise<Null>}
    */
   grant (request) {
     let {grantType} = request
@@ -382,10 +391,10 @@ class TokenRequest extends BaseRequest {
    * Authorization Code Grant
    *
    * @param {TokenRequest} request
-   * @returns {Promise}
+   * @returns {Promise<Null>}
    */
   authorizationCodeGrant (request) {
-    Promise.resolve({})
+    return Promise.resolve({})
       .then(request.includeAccessToken.bind(request))
       .then(request.includeIDToken.bind(request))
       .then(response => {
@@ -411,22 +420,23 @@ class TokenRequest extends BaseRequest {
    * Refresh Grant
    *
    * @param {TokenRequest} request
-   * @returns {Promise}
+   * @returns {Promise<Object>} Resolves to response object
    */
   refreshTokenGrant (request) {
-    AccessToken.refresh(request).then(this.tokenResponse)
+    // TODO: I don't think this.tokenResponse is implemented..
+    return AccessToken.refresh(request).then(this.tokenResponse)
   }
 
   /**
    * OAuth 2.0 Client Credentials Grant
    *
    * @param {TokenRequest} request
-   * @returns {Promise}
+   * @returns {Promise<Null>}
    */
   clientCredentialsGrant (request) {
     let {res, client: { default_max_age: expires } } = request
 
-    AccessToken.issue(request).then(token => {
+    return AccessToken.issue(request).then(token => {
       let response = {}
 
       res.set({
@@ -446,6 +456,8 @@ class TokenRequest extends BaseRequest {
 
   /**
    * Verify Authorization Code
+   * @param request {TokenRequest}
+   * @returns {TokenRequest}
    */
   verifyAuthorizationCode (request) {
     let {params, client, provider, grantType} = request
