@@ -12,6 +12,7 @@ const DynamicRegistrationRequest = require('./handlers/DynamicRegistrationReques
 const JWKSetRequest = require('./handlers/JWKSetRequest')
 const TokenRequest = require('./handlers/TokenRequest')
 const UserInfoRequest = require('./handlers/UserInfoRequest')
+const RPInitiatedLogoutRequest = require('./handlers/RPInitiatedLogoutRequest')
 
 /**
  * OpenID Connect Provider
@@ -121,6 +122,18 @@ class Provider extends JSONDocument {
    */
   authorize (req, res) {
     AuthenticationRequest.handle(req, res, this)
+  }
+
+  /**
+   * Logout
+   *
+   * Bound to the OP's `end_session_endpoint` uri
+   *
+   * @param req {HTTPRequest}
+   * @param res {HTTPResponse}
+   */
+  logout (req, res) {
+    RPInitiatedLogoutRequest.handle(req, res, this)
   }
 
   /**

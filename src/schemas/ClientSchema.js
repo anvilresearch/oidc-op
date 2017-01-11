@@ -72,7 +72,7 @@ const schema = new JSONSchema({
     },
 
     /**
-     * application_typepost_logout_redirect_uris
+     * application_type
      * OPTIONAL. Kind of the application. The default, if omitted, is web. The
      * defined values are native or web. Web Clients using the OAuth Implicit
      * Grant Type MUST only register URLs using the https scheme as
@@ -245,6 +245,33 @@ const schema = new JSONSchema({
       items: {
         format: 'uri'
       }
+    },
+
+    /**
+     * frontchannel_logout_uri
+     *
+     * OPTIONAL. RP URL that will cause the RP to log itself out when rendered
+     * in an iframe by the OP.
+     *
+     * @see https://openid.net/specs/openid-connect-frontchannel-1_0.html#RPLogout
+     */
+    frontchannel_logout_uri: {
+      type: 'string',
+      format: 'uri'
+    },
+
+    /**
+     * frontchannel_logout_session_required
+     *
+     * OPTIONAL. Boolean value specifying whether the RP requires that `iss`
+     * (issuer) and `sid` (session ID) query parameters be included to identify
+     * the RP session with the OP when the `frontchannel_logout_uri` is used.
+     *
+     * @see https://openid.net/specs/openid-connect-frontchannel-1_0.html#RPLogout
+     */
+    frontchannel_logout_session_required: {
+      type: 'boolean',
+      default: false
     }
   },
   required: ['redirect_uris']

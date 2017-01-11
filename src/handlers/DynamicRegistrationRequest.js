@@ -54,6 +54,14 @@ class DynamicRegistrationRequest extends BaseRequest {
       registration.client_secret = request.secret()
     }
 
+    /**
+     * TODO: Validate that the `frontchannel_logout_uri` domain and port is the same as one of the `redirect_uris` values
+     * @see https://openid.net/specs/openid-connect-frontchannel-1_0.html#RPLogout
+     *
+     * The domain, port, and scheme of this URL MUST be the same as that of a
+     * registered Redirection URI value.
+     */
+
     // initialize and validate a client
     let client = new Client(registration)
     let validation = client.validate()
