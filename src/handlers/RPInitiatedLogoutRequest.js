@@ -24,7 +24,7 @@ class RPInitiatedLogoutRequest extends BaseRequest {
     let { host } = provider
     let request = new RPInitiatedLogoutRequest(req, res, provider)
 
-    Promise
+    return Promise
       .resolve(request)
       .then(request.validate)
 
@@ -34,7 +34,7 @@ class RPInitiatedLogoutRequest extends BaseRequest {
       // MUST log out the End-User.
       .then(host.logout)
 
-      .then(request.redirectOrRespond)
+      .then(request.redirectOrRespond.bind(request))
       .catch(request.internalServerError)
   }
 
@@ -104,7 +104,6 @@ class RPInitiatedLogoutRequest extends BaseRequest {
    */
   redirectOrRespond () {
     let { params: { post_logout_redirect_uri: postLogoutRedirectUri } } = this
-
     if (postLogoutRedirectUri) {
       this.redirectToRP()
     } else {

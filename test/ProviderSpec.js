@@ -27,6 +27,7 @@ const DynamicRegistrationRequest = require(path.join(cwd, 'src', 'handlers', 'Dy
 const JWKSetRequest = require(path.join(cwd, 'src', 'handlers', 'JWKSetRequest'))
 const TokenRequest = require(path.join(cwd, 'src', 'handlers', 'TokenRequest'))
 const UserInfoRequest = require(path.join(cwd, 'src', 'handlers', 'UserInfoRequest'))
+const RPInitiatedLogoutRequest = require(path.join(cwd, 'src', 'handlers', 'RPInitiatedLogoutRequest'))
 
 /**
  * Tests
@@ -223,4 +224,24 @@ describe('OpenID Connect Provider', () => {
     })
   })
 
+  describe('logout', () => {
+    let req, res, provider
+
+    before(() => {
+      req = {}
+      res = {}
+      sinon.stub(RPInitiatedLogoutRequest, 'handle')
+      provider = new Provider({}, {}, {})
+      provider.logout(req, res, provider)
+    })
+
+    after(() => {
+      RPInitiatedLogoutRequest.handle.restore()
+    })
+
+    it('should invoke the RPInitiatedLogoutRequest handler', () => {
+      RPInitiatedLogoutRequest.handle.should.have.been
+        .calledWith(req, res, provider)
+    })
+  })
 })
