@@ -100,7 +100,6 @@ class RPInitiatedLogoutRequest extends BaseRequest {
    *
    * @see https://openid.net/specs/openid-connect-session-1_0.html#RedirectionAfterLogout
    *
-   * @param request {RPInitiatedLogoutRequest}
    * @returns {null}
    */
   redirectOrRespond () {
