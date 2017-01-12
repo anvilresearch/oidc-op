@@ -28,8 +28,8 @@ class AuthenticationRequest extends BaseRequest {
     Promise
       .resolve(request)
       .then(request.validate)
-      .then(host.authenticate)  // QUESTION, what's the cleanest way to
-      .then(host.obtainConsent) // bind this here?
+      .then(host.authenticate)
+      .then(host.obtainConsent)
       .then(request.authorize)
       .catch(request.internalServerError)
   }
