@@ -64,8 +64,22 @@ class Provider extends JSONDocument {
 
   /**
    * initializeKeyChain
+   *
+   * @param data {Object} Parsed JSON of a serialized provider's .keys property
+   * @returns {Promise<Provider>} Resolves to self, chainable
    */
-  initializeKeyChain () {
+  initializeKeyChain (data) {
+    if (!data) {
+      return this.generateKeyChain()
+    }
+
+    return this.importKeyChain(data)
+  }
+
+  /**
+   * generateKeyChain
+   */
+  generateKeyChain () {
     let modulusLength = 2048
 
     let descriptor = {
@@ -99,6 +113,25 @@ class Provider extends JSONDocument {
 
     this.keys = new KeyChain(descriptor)
     return this.keys.rotate()
+  }
+
+  /**
+   * importKeyChain
+   *
+   * @param data {Object} Parsed JSON of a serialized provider's .keys property
+   * @returns {Promise<Provider>} Resolves to self, chainable
+   */
+  importKeyChain (data) {
+    if (!data) {
+      return Promise.reject(new Error('Cannot import empty keychain'))
+    }
+
+    return KeyChain.restore(data)
+      .then(keychain => {
+        this.keys = keychain
+
+        return this
+      })
   }
 
   /**
