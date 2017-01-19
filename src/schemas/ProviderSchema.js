@@ -77,10 +77,12 @@ const schema = new JSONSchema({
 
     response_modes_supported: {
       type: 'array',
-      enum: [
-        'query',
-        'fragment'
-      ],
+      items: {
+        enum: [
+          'query',
+          'fragment'
+        ]
+      },
       default: [
         'query',
         'fragment'
@@ -133,6 +135,8 @@ const schema = new JSONSchema({
       items: {
         enum: [
           'RS256',
+          'RS384',
+          'RS512',
           'none'
         ]
       }

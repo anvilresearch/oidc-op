@@ -39,6 +39,30 @@ class Provider extends JSONDocument {
   }
 
   /**
+   * from
+   *
+   * @param data {Object} Parsed JSON of a serialized Provider
+   * @returns {Promise<Provider>}
+   */
+  static from (data) {
+    let provider = new Provider(data)
+
+    let validation = provider.validate()
+
+    // schema validation
+    if (!validation.valid) {
+      return Promise.reject(validation)
+    }
+
+    return KeyChain.restore(data.keys)
+      .then(keychain => {
+        provider.keys = keychain
+
+        return provider
+      })
+  }
+
+  /**
    * initializeKeyChain
    */
   initializeKeyChain () {
