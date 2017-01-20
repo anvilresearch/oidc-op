@@ -6,6 +6,7 @@
  */
 const qs = require('qs')
 const BaseRequest = require('./BaseRequest')
+const IDToken = require('../IDToken')
 
 class RPInitiatedLogoutRequest extends BaseRequest {
   /**
@@ -56,6 +57,85 @@ class RPInitiatedLogoutRequest extends BaseRequest {
   }
 
   /**
+   * validateIdTokenHint
+   *
+   * Validates the `id_token_hint` parameter
+   *
+   * RECOMMENDED. Previously issued ID Token passed to the logout endpoint as
+   * a hint about the End-User's current authenticated session with the Client.
+   * This is used as an indication of the identity of the End-User that the RP
+   * is requesting be logged out by the OP. The OP *need not* be listed as an
+   * audience of the ID Token when it is used as an `id_token_hint` value.
+   *
+   * @param request {RPInitiatedLogoutRequest}
+   * @returns {Promise<RPInitiatedLogoutRequest>} Chainable
+   */
+  validateIdTokenHint (request) {
+    let { provider, params } = request
+    let { id_token_hint: hint } = params
+
+    if (!hint) {
+      return request
+    }
+
+    return IDToken.decode(hint)
+      .then(decoded => {
+        if (!decoded.resolveKeys(provider.keys.jwks)) {
+          throw new Error('ID Token hint keys cannot be resolved')
+        }
+
+        return decoded.verify()
+          .then(() => {
+            request.params.decodedHint = decoded
+            return request
+          })
+      })
+  }
+
+  /**
+   * validatePostLogoutUri
+   *
+   * Validates that `post_logout_redirect_uri` has been registered
+   *
+   * The value MUST have been previously registered with the OP, either using
+   * the `post_logout_redirect_uris` Registration parameter
+   * or via another mechanism.
+   *
+   * Question: what's this about 'another mechanism'?
+   *
+   * @param request {RPInitiatedLogoutRequest}
+   * @returns {Promise<RPInitiatedLogoutRequest>} Chainable
+   */
+  validatePostLogoutUri (request) {
+    let { provider, params } = request
+    let { post_logout_redirect_uri: uri, id_token_hint: hint } = params
+    let { decodedHint } = params
+
+    if (!uri) {
+      return request
+    }
+
+    // Get the client from the ID Token Hint to validate that the
+    // post logout redirect URI has been pre-registered
+    let clientId = decodedHint.clientId
+
+    return provider.backend.get('clients', cliendId)
+      .then(client => {
+        if (!client) {
+          throw new Error('Invalid ID Token hint (client not found)')
+        }
+
+        // Check that the post logout uri has been registered
+        if (!client['post_logout_redirect_uris'].includes(uri)) {
+          throw new Error('post_logout_redirect_uri must be pre-registered')
+        }
+
+        // Valid
+        return request
+      })
+  }
+
+  /**
    * Validate
    *
    * @see https://openid.net/specs/openid-connect-session-1_0.html#RPLogout
@@ -64,29 +144,16 @@ class RPInitiatedLogoutRequest extends BaseRequest {
    */
   validate (request) {
     /**
-     * `state` parameter - no validation need it. Will be passed back to the RP
+     * `state` parameter - no validation needed. Will be passed back to the RP
      * in the `redirectToRP()` step.
      */
+    if (uri && !hint) {
+      throw new Error('post_logout_redirect_uri requires an id_token_hint')
+    }
 
-    /**
-     * TODO: Validate `id_token_hint` (validate as ID Token *except* for `aud`)
-     *
-     * RECOMMENDED. Previously issued ID Token passed to the logout endpoint as
-     * a hint about the End-User's current authenticated session with the Client.
-     * This is used as an indication of the identity of the End-User that the RP
-     * is requesting be logged out by the OP. The OP *need not* be listed as an
-     * audience of the ID Token when it is used as an `id_token_hint` value.
-     */
-
-    /**
-     * TODO: Validate that `post_logout_redirect_uri` has been registered
-     *
-     * The value MUST have been previously registered with the OP, either using
-     * the `post_logout_redirect_uris` Registration parameter
-     * or via another mechanism.
-     *
-     * Question: what's this about 'another mechanism'?
-     */
+    return Promise.resolve(request)
+      .then(request.validateIdTokenHint)
+      .then(request.validatePostLogoutUri)
   }
 
   /**
