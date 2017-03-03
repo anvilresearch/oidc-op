@@ -126,9 +126,9 @@ class BaseRequest {
   /**
    * 403 Forbidden Response
    */
-  forbidden () {
+  forbidden (error) {
     let {res} = this
-    res.status(403).send('Forbidden')
+    res.status(403).json(error)
   }
 
   /**
