@@ -13,7 +13,6 @@ const IDToken = require('../IDToken')
  * AuthenticationRequest
  */
 class AuthenticationRequest extends BaseRequest {
-
   /**
    * Request Handler
    *
@@ -244,9 +243,11 @@ class AuthenticationRequest extends BaseRequest {
    * Handle user's rejection of the client.
    */
   deny (request) {
-    this.redirect({
-      error: 'access_denied'
-    })
+    if (!request.headersSent) {
+      this.redirect({
+        error: 'access_denied'
+      })
+    }
   }
 
   /**
