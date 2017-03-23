@@ -35,7 +35,7 @@ class RPInitiatedLogoutRequest extends BaseRequest {
       .then(host.logout)
 
       .then(request.redirectOrRespond.bind(request))
-      .catch(request.internalServerError)
+      .catch(request.internalServerError.bind(request))
   }
 
   /**

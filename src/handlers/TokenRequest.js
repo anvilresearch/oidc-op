@@ -30,7 +30,7 @@ class TokenRequest extends BaseRequest {
       .then(request.authenticateClient)
       .then(request.verifyAuthorizationCode)
       .then(request.grant)
-      .catch(request.internalServerError)
+      .catch(request.internalServerError.bind(request))
   }
 
   /**
