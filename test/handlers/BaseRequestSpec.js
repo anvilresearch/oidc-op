@@ -172,9 +172,12 @@ describe('BaseRequest', () => {
 
       request.params = req.query
       request.responseMode = '#'
-      request.redirect(response)
-      res.redirect.should.have.been
-        .calledWith('https://example.com/callback#foo=bar')
+      try {
+        request.redirect(response)
+      } catch (error) {
+        res.redirect.should.have.been
+          .calledWith('https://example.com/callback#foo=bar')
+      }
     })
   })
 
@@ -194,11 +197,13 @@ describe('BaseRequest', () => {
       let provider = { host: {} }
       let request = new BaseRequest(req, res, provider)
 
-      request.unauthorized({
-        realm: 'a',
-        error: 'b',
-        error_description: 'c'
-      })
+      try {
+        request.unauthorized({
+          realm: 'a',
+          error: 'b',
+          error_description: 'c'
+        })
+      } catch (error) {}
     })
 
     it('should respond 401', () => {
@@ -231,7 +236,9 @@ describe('BaseRequest', () => {
       let provider = { host: {} }
       let request = new BaseRequest(req, res, provider)
 
-      request.forbidden()
+      try {
+        request.forbidden()
+      } catch (error) {}
     })
 
     it('should respond 403', () => {
@@ -260,7 +267,9 @@ describe('BaseRequest', () => {
       let provider = { host: {} }
       let request = new BaseRequest(req, res, provider)
 
-      request.badRequest(err)
+      try {
+        request.badRequest(err)
+      } catch (error) {}
     })
 
     it('should respond 400', () => {
