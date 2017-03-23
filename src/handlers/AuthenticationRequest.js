@@ -31,7 +31,7 @@ class AuthenticationRequest extends BaseRequest {
       .then(host.authenticate)
       .then(host.obtainConsent)
       .then(request.authorize)
-      .catch(request.internalServerError)
+      .catch(request.internalServerError.bind(request))
   }
 
   /**
