@@ -7,6 +7,8 @@
 const crypto = require('webcrypto')
 const qs = require('qs')
 
+const HandledError = require('../errors/HandledError')
+
 /**
  * Request Parameter Mapping
  */
@@ -106,6 +108,8 @@ class BaseRequest {
 
     let response = qs.stringify(data)
     res.redirect(`${uri}${responseMode}${response}`)
+
+    throw new HandledError('302 Redirect')
   }
 
   /**
@@ -121,6 +125,8 @@ class BaseRequest {
     })
 
     res.status(401).send('Unauthorized')
+
+    throw new HandledError('401 Unauthorized')
   }
 
   /**
@@ -129,6 +135,8 @@ class BaseRequest {
   forbidden (error) {
     let {res} = this
     res.status(403).json(error)
+
+    throw new HandledError('403 Forbidden')
   }
 
   /**
@@ -143,6 +151,36 @@ class BaseRequest {
     })
 
     res.status(400).json(error)
+
+    throw new HandledError('400 Bad Request')
+  }
+
+  /**
+   * Serves as a general purpose error handler for `.catch()` clauses in
+   * Promise chains. Example usage:
+   *
+   *   ```
+   *   return Promise.resolve(request)
+   *     .then(request.validate)
+   *     .then(request.stepOne)
+   *     .then(request.stepTwo)  // etc.
+   *     .catch(request.error.bind(request))
+   *   ```
+   *
+   * If at any point (say, in `validate()` or `stepOne()`) the code needs to
+   * break out of that promise chain intentionally, it should throw a
+   * `HandledError`. For example:
+   *
+   *   ```
+   *   throw new HandledError('400 Bad Request')
+   *   ```
+   *
+   * @param error {HandledError|Error}
+   */
+  error (error) {
+    if (!error.handled) {
+      this.internalServerError(error)
+    }
   }
 
   /**
