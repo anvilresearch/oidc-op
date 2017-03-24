@@ -29,6 +29,7 @@ class DynamicRegistrationRequest extends BaseRequest {
       .then(request.register)
       .then(request.token)
       .then(request.respond)
+      .catch(request.error.bind(request))
   }
 
   /**
@@ -41,7 +42,10 @@ class DynamicRegistrationRequest extends BaseRequest {
     let registration = request.req.body
 
     if (!registration) {
-      throw new Error('Missing registration request body')
+      return request.badRequest({
+        error: 'invalid_request',
+        error_description: 'Missing registration request body',
+      })
     }
 
     // generate a client id unless one is provided
