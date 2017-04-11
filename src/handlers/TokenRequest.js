@@ -406,7 +406,7 @@ class TokenRequest extends BaseRequest {
    * includeAccessToken
    */
   includeAccessToken (response) {
-    return AccessToken.issue(this, response)
+    return AccessToken.issueForRequest(this, response)
   }
 
   /**
@@ -436,7 +436,7 @@ class TokenRequest extends BaseRequest {
   clientCredentialsGrant (request) {
     let {res, client: { default_max_age: expires } } = request
 
-    return AccessToken.issue(request).then(token => {
+    return AccessToken.issueForRequest(request, res).then(token => {
       let response = {}
 
       res.set({
