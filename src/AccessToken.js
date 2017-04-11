@@ -21,6 +21,25 @@ class AccessToken extends JWT {
   }
 
   /**
+   * issue
+   *
+   * Creates an access token issued by a given provider. Useful for integration
+   * testing of client app code, to generate access tokens to pass along to
+   * `supertest` http requests. Usage (in mocha `beforeEach()`, for example):
+   *
+   *   ```
+   *   // This assumes you have a Provider instance, an RP Client id,
+   *   // and a particular user in mind (for the `sub`ject claim)
+   *
+   *   let options = { aud: rpClientId, sub: userId, scope: 'openid profile' }
+   *   let token = AccessToken.issue(provider, options)
+
+   *   return token.encode()
+   *     .then(compactToken => {
+   *       headers['Authorization'] = 'Bearer ' + compactToken
+   *     })
+   *   ```
+   *
    * @param options {Object}
    *
    * Required:
@@ -28,8 +47,10 @@ class AccessToken extends JWT {
    * @param provider.issuer {string} Provider URI
    * @param provider.keys
    *
-   * @param options.aud {string} Audience for the token (client_id, etc)
-   * @param options.sub {string} Subject id for the token
+   * @param options.aud {string|Array<string>} Audience for the token
+   *   (such as the Relying Party client_id)
+   * @param options.sub {string} Subject id for the token (opaque, unique to
+   *   the issuer)
    * @param options.scope {string} OAuth2 scope
    *
    * Optional:
