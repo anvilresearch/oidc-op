@@ -13,6 +13,7 @@ const JWKSetRequest = require('./handlers/JWKSetRequest')
 const TokenRequest = require('./handlers/TokenRequest')
 const UserInfoRequest = require('./handlers/UserInfoRequest')
 const RPInitiatedLogoutRequest = require('./handlers/RPInitiatedLogoutRequest')
+const AccessToken = require('./AccessToken')
 
 /**
  * OpenID Connect Provider
@@ -132,6 +133,10 @@ class Provider extends JSONDocument {
 
         return this
       })
+  }
+
+  issueAccessToken (options) {
+    return AccessToken.issue(this, options)
   }
 
   /**
