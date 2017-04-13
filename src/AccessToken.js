@@ -2,7 +2,7 @@
  * Local dependencies
  */
 const {JWT} = require('@trust/jose')
-const crypto = require('webcrypto')
+const crypto = require('@trust/webcrypto')
 const AccessTokenSchema = require('./schemas/AccessTokenSchema')
 
 const DEFAULT_MAX_AGE = 3600  // Default Access token expiration, in seconds
