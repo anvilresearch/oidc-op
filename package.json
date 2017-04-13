@@ -38,7 +38,7 @@
   "homepage": "https://github.com/anvilresearch/oidc-op#README",
   "dependencies": {
     "base64url": "^2.0.0",
-    "jose": "git://github.com/anvilresearch/jose.git#rc-003",
+    "jose": "git://github.com/anvilresearch/jose.git#rc-005",
     "json-document": "git://github.com/anvilresearch/json-document.git#rc-002",
     "keychain": "git://github.com/anvilresearch/keychain.git#rc-001",
     "pem-jwk": "^1.5.1",
