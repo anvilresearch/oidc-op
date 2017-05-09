@@ -4,7 +4,7 @@
  * Dependencies
  * @ignore
  */
-const crypto = require('webcrypto')
+const crypto = require('@trust/webcrypto')
 const qs = require('qs')
 
 const HandledError = require('../errors/HandledError')

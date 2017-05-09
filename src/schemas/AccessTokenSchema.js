@@ -1,7 +1,7 @@
 /**
  * Local dependencies
  */
-const {JWTSchema} = require('jose')
+const {JWTSchema} = require('@trust/jose')
 
 /**
  * AccessTokenSchema

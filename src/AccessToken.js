@@ -1,7 +1,7 @@
 /**
  * Local dependencies
  */
-const {JWT} = require('jose')
+const {JWT} = require('@trust/jose')
 const AccessTokenSchema = require('./schemas/AccessTokenSchema')
 
 /**
