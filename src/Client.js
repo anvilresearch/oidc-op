@@ -1,7 +1,7 @@
 /**
  * Dependencies
  */
-const {JSONDocument} = require('json-document')
+const {JSONDocument} = require('@trust/json-document')
 const ClientSchema = require('./schemas/ClientSchema')
 
 /**

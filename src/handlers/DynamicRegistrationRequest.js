@@ -4,8 +4,8 @@
  * Dependencies
  * @ignore
  */
-const {JWT} = require('jose')
-const crypto = require('webcrypto')
+const {JWT} = require('@trust/jose')
+const crypto = require('@trust/webcrypto')
 const BaseRequest = require('./BaseRequest')
 const Client = require('../Client')
 

@@ -3,8 +3,8 @@
 /**
  * Dependencies
  */
-const {JSONDocument} = require('json-document')
-const KeyChain = require('keychain')
+const {JSONDocument} = require('@trust/json-document')
+const KeyChain = require('@trust/keychain')
 const ProviderSchema = require('./schemas/ProviderSchema')
 const AuthenticationRequest = require('./handlers/AuthenticationRequest')
 const OpenIDConfigurationRequest = require('./handlers/OpenIDConfigurationRequest')

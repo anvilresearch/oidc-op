@@ -1,9 +1,9 @@
 /**
  * Local dependencies
  */
-const crypto = require('webcrypto')
+const crypto = require('@trust/webcrypto')
 const base64url = require('base64url')
-const {JWT} = require('jose')
+const {JWT} = require('@trust/jose')
 const IDTokenSchema = require('./schemas/IDTokenSchema')
 
 /**
