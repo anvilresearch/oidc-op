@@ -1,5 +1,5 @@
 {
-  "name": "oidc-op",
+  "name": "@trust/oidc-op",
   "version": "0.0.0",
   "description": "OpenID Connect Provider",
   "main": "src/index.js",
