@@ -256,7 +256,7 @@ class AuthenticationRequest extends BaseRequest {
     let {responseTypes} = this
 
     if (responseTypes.includes('token')) {
-      return AccessToken.issue(this, response)
+      return AccessToken.issueForRequest(this, response)
     }
 
     return response
