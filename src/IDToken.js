@@ -29,7 +29,7 @@ class IDToken extends JWT {
     let key = keys['id_token'].signing[alg].privateKey
     let kid = keys['id_token'].signing[alg].publicJwk.kid
     let iss = issuer
-    let jti = request.random(8)
+    let jti = IDToken.random(8)
     let iat = Math.floor(Date.now() / 1000)
     let aud, sub, max, nonce
 
@@ -97,6 +97,11 @@ class IDToken extends JWT {
         return base64url(half)
       })
     }
+  }
+
+  static random (byteLen) {
+    let value = crypto.getRandomValues(new Uint8Array(byteLen))
+    return Buffer.from(value).toString('hex')
   }
 }
 
