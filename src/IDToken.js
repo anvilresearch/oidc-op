@@ -23,7 +23,7 @@ class IDToken extends JWT {
    */
   static issue (request, response) {
     let {params, code, provider, client, subject} = request
-    let {issuer, keys, backend} = provider
+    let {issuer, keys} = provider
 
     let alg = client['id_token_signed_response_alg'] || 'RS256'
     let key = keys['id_token'].signing[alg].privateKey

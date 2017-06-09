@@ -162,6 +162,9 @@ class AccessToken extends JWT {
   }
 }
 
+AccessToken.DEFAULT_MAX_AGE = DEFAULT_MAX_AGE
+AccessToken.DEFAULT_SIG_ALGORITHM = DEFAULT_SIG_ALGORITHM
+
 /**
  * Export
  */
