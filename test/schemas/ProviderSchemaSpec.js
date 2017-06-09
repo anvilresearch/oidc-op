@@ -216,7 +216,7 @@ describe('OpenID Connect Provider Schema', () => {
   })
 
   it('should define enum of "response_modes_supported"', () => {
-    properties.response_modes_supported.enum.should.eql([
+    properties.response_modes_supported.items.enum.should.eql([
       'query',
       'fragment'
     ])
@@ -315,6 +315,8 @@ describe('OpenID Connect Provider Schema', () => {
   it('should define enum of "id_token_signing_alg_values_supported"', () => {
     properties.id_token_signing_alg_values_supported.items.enum.should.eql([
       'RS256',
+      'RS384',
+      'RS512',
       'none'
     ])
   })
