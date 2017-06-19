@@ -3,6 +3,7 @@
 /**
  * Dependencies
  */
+const url = require('url')
 const {JSONDocument} = require('@trust/json-document')
 const KeyChain = require('@trust/keychain')
 const ProviderSchema = require('./schemas/ProviderSchema')
@@ -23,17 +24,9 @@ class Provider extends JSONDocument {
    * constructor
    */
   constructor (data, options) {
-    let {issuer} = data
-
     //assert(issuer, 'OpenID Provider must have an issuer')
 
-    data['authorization_endpoint'] = `${issuer}/authorize`
-    data['token_endpoint'] = `${issuer}/token`
-    data['userinfo_endpoint'] = `${issuer}/userinfo`
-    data['jwks_uri'] = `${issuer}/jwks`
-    data['registration_endpoint'] = `${issuer}/register`
-    data['check_session_iframe'] = `${issuer}/session`
-    data['end_session_endpoint'] = `${issuer}/logout`
+    data = Provider.initializeEndpoints(data, options)
 
     super(data, options)
   }
@@ -60,6 +53,28 @@ class Provider extends JSONDocument {
 
         return provider
       })
+  }
+
+  /**
+   * initializeEndpoints
+   *
+   * @param data
+   * @param options
+   *
+   * @returns {Object} Provider data object
+   */
+  static initializeEndpoints(data, options) {
+    let issuer = data.issuer || ''
+
+    data['authorization_endpoint'] = data['authorization_endpoint'] || url.resolve(issuer, '/authorize')
+    data['token_endpoint'] = data['token_endpoint'] || url.resolve(issuer, '/token')
+    data['userinfo_endpoint'] = data['userinfo_endpoint'] || url.resolve(issuer, '/userinfo')
+    data['jwks_uri'] = data['jwks_uri'] || url.resolve(issuer, '/jwks')
+    data['registration_endpoint'] = data['registration_endpoint'] || url.resolve(issuer, '/register')
+    data['check_session_iframe'] = data['check_session_iframe'] || url.resolve(issuer, '/session')
+    data['end_session_endpoint'] = data['end_session_endpoint'] || url.resolve(issuer, '/logout')
+
+    return data
   }
 
   /**
