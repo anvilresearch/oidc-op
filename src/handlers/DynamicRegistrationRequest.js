@@ -44,7 +44,15 @@ class DynamicRegistrationRequest extends BaseRequest {
     if (!registration) {
       return request.badRequest({
         error: 'invalid_request',
-        error_description: 'Missing registration request body',
+        error_description: 'Missing registration request body'
+      })
+    }
+
+    // Return an explicit error on missing redirect_uris
+    if (!registration.redirect_uris) {
+      return request.badRequest({
+        error: 'invalid_request',
+        error_description: 'Missing redirect_uris parameter'
       })
     }
 
@@ -71,7 +79,10 @@ class DynamicRegistrationRequest extends BaseRequest {
     let validation = client.validate()
 
     if (!validation.valid) {
-      return request.badRequest(validation)
+      return request.badRequest({
+        error: 'invalid_request',
+        error_description: 'Client validation error: ' + JSON.stringify(validation)
+      })
     }
 
     request.client = client
