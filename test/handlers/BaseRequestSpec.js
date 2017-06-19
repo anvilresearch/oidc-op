@@ -30,7 +30,10 @@ describe('BaseRequest', () => {
    * Handle
    */
   describe('handle', () => {
-    it('should throw an error')
+    it('should throw an error', () => {
+      expect(() => BaseRequest.handle())
+        .to.throw(/Handle must be implemented by BaseRequest subclass/)
+    })
   })
 
   /**
