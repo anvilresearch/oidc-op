@@ -22,7 +22,7 @@ let expect = chai.expect
 const Provider = require('../src/Provider')
 const AccessToken = require('../src/AccessToken')
 const AccessTokenSchema = require('../src/schemas/AccessTokenSchema')
-const MemoryStore = require('../src/backends/MemoryStore')
+const MemoryStore = require('./backends/MemoryStore')
 
 /**
  * Tests
