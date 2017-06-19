@@ -6,6 +6,7 @@
  */
 const {JWT} = require('@trust/jose')
 const crypto = require('@trust/webcrypto')
+const url = require('url')
 const BaseRequest = require('./BaseRequest')
 const Client = require('../Client')
 
@@ -24,7 +25,7 @@ class DynamicRegistrationRequest extends BaseRequest {
   static handle (req, res, provider) {
     let request = new DynamicRegistrationRequest(req, res, provider)
 
-    Promise.resolve(request)
+    return Promise.resolve(request)
       .then(request.validate)
       .then(request.register)
       .then(request.token)
@@ -143,9 +144,12 @@ class DynamicRegistrationRequest extends BaseRequest {
   respond (request) {
     let {client, compact, provider, res} = request
 
+    let clientUri = url.resolve(provider.issuer,
+      '/register/' + encodeURIComponent(client.client_id))
+
     let response = Object.assign({}, client, {
       registration_access_token: compact,
-      registration_client_uri: `${provider.issuer}/register/${client.client_id}`,
+      registration_client_uri: clientUri,
       client_id_issued_at: Math.floor(Date.now() / 1000)
     })
 
