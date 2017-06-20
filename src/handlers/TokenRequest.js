@@ -395,8 +395,8 @@ class TokenRequest extends BaseRequest {
    */
   authorizationCodeGrant (request) {
     return Promise.resolve({})
-      .then(request.includeAccessToken.bind(request))
-      .then(request.includeIDToken.bind(request))
+      .then(response => request.includeAccessToken(response))
+      .then(response => request.includeIDToken(response))
       .then(response => {
         request.res.json(response)
       })
@@ -515,7 +515,7 @@ class TokenRequest extends BaseRequest {
       })
     }
 
-    return request
+    return Promise.resolve(request)
   }
 }
 
