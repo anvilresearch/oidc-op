@@ -25,7 +25,7 @@ class AuthenticationRequest extends BaseRequest {
     let {host} = provider
     let request = new AuthenticationRequest(req, res, provider)
 
-    Promise
+    return Promise
       .resolve(request)
       .then(request.validate)
       .then(host.authenticate)
@@ -77,9 +77,8 @@ class AuthenticationRequest extends BaseRequest {
     // IF THE REQUEST IS VALID. ALL ERROR CONDITIONS
     // SHOULD BE HANDLED HERE (WITH AN ERROR RESPONSE),
     // SO THERE'S NOTHING TO CATCH.
-    return new Promise((resolve, reject) => {
-      provider.backend.get('clients', params.client_id).then(client => {
-
+    return provider.backend.get('clients', params.client_id)
+      .then(client => {
         // UNKNOWN CLIENT
         if (!client) {
           return request.unauthorized({
@@ -150,9 +149,8 @@ class AuthenticationRequest extends BaseRequest {
         }
 
         // VALID REQUEST
-        resolve(request)
+        return request
       })
-    })
   }
 
   /**
@@ -215,9 +213,9 @@ class AuthenticationRequest extends BaseRequest {
    */
   authorize (request) {
     if (request.consent === true) {
-      request.allow(request)
+      return request.allow(request)
     } else {
-      request.deny(request)
+      return request.deny(request)
     }
   }
 
@@ -229,7 +227,7 @@ class AuthenticationRequest extends BaseRequest {
    * state.
    */
   allow (request) {
-    Promise.resolve({}) // initialize empty response
+    return Promise.resolve({}) // initialize empty response
       .then(response => request.includeAccessToken(response))
       .then(response => request.includeAuthorizationCode(response))
       .then(response => request.includeIDToken(response))
@@ -266,6 +264,8 @@ class AuthenticationRequest extends BaseRequest {
 
   /**
    * Include Authorization Code
+   *
+   * @returns {Promise}
    */
   includeAuthorizationCode (response) {
     let {responseTypes, params, scope} = this
@@ -293,7 +293,7 @@ class AuthenticationRequest extends BaseRequest {
         })
     }
 
-    return response
+    return Promise.resolve(response)
   }
 
   /**
