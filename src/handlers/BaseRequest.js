@@ -131,12 +131,20 @@ class BaseRequest {
 
   /**
    * 403 Forbidden Response
+   *
+   * @param params {Object}
+   * @param params.error {string}
+   * @param params.error_description {string}
    */
-  forbidden () {
+  forbidden (params) {
     let {res} = this
+
     res.status(403).send('Forbidden')
 
-    throw new HandledError('403 Forbidden')
+    let error = new HandledError('403 Forbidden')
+    error.error = params.error
+    error.error_description = params.error_description
+    throw error
   }
 
   /**
