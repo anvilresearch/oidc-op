@@ -31,7 +31,7 @@ class AuthenticationRequest extends BaseRequest {
       .then(host.authenticate)
       .then(host.obtainConsent)
       .then(request.authorize)
-      .catch(request.error.bind(request))
+      .catch(err => request.error(err))
   }
 
   /**
@@ -230,11 +230,11 @@ class AuthenticationRequest extends BaseRequest {
    */
   allow (request) {
     Promise.resolve({}) // initialize empty response
-      .then(this.includeAccessToken.bind(this))
-      .then(this.includeAuthorizationCode.bind(this))
-      .then(this.includeIDToken.bind(this))
+      .then(response => request.includeAccessToken(response))
+      .then(response => request.includeAuthorizationCode(response))
+      .then(response => request.includeIDToken(response))
       //.then(this.includeSessionState.bind(this))
-      .then(this.redirect.bind(this))
+      .then(response => request.redirect(response))
       // do some error handling here
   }
 
@@ -251,6 +251,8 @@ class AuthenticationRequest extends BaseRequest {
 
   /**
    * Include Access Token
+   *
+   * @returns {Promise}
    */
   includeAccessToken (response) {
     let {responseTypes} = this
@@ -259,7 +261,7 @@ class AuthenticationRequest extends BaseRequest {
       return AccessToken.issueForRequest(this, response)
     }
 
-    return response
+    return Promise.resolve(response)
   }
 
   /**
@@ -296,6 +298,8 @@ class AuthenticationRequest extends BaseRequest {
 
   /**
    * Include ID Token
+   *
+   * @returns {Promise}
    */
   includeIDToken (response) {
     let {responseTypes} = this
@@ -304,7 +308,7 @@ class AuthenticationRequest extends BaseRequest {
       return IDToken.issue(this, response)
     }
 
-    return response
+    return Promise.resolve(response)
   }
 
   /**
