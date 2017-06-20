@@ -26,7 +26,9 @@ describe('JWKSetRequest', () => {
   const providerUri = 'https://example.com'
   let req, res, provider
 
-  beforeEach(() => {
+  before(function () {
+    this.timeout(5000)
+
     req = HttpMocks.createRequest()
     res = HttpMocks.createResponse()
 
