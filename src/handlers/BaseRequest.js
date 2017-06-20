@@ -131,18 +131,30 @@ class BaseRequest {
 
   /**
    * 403 Forbidden Response
+   *
+   * @param params {Object}
+   * @param params.error {string}
+   * @param params.error_description {string}
    */
-  forbidden () {
+  forbidden (params) {
     let {res} = this
+
     res.status(403).send('Forbidden')
 
-    throw new HandledError('403 Forbidden')
+    let error = new HandledError('403 Forbidden')
+    error.error = params.error
+    error.error_description = params.error_description
+    throw error
   }
 
   /**
    * 400 Bad Request Response
+   *
+   * @param params {Object}
+   * @param params.error {string}
+   * @param params.error_description {string}
    */
-  badRequest (error) {
+  badRequest (params) {
     let {res} = this
 
     res.set({
@@ -150,9 +162,14 @@ class BaseRequest {
       'Pragma': 'no-cache'
     })
 
-    res.status(400).json(error)
+    res.status(400).json(params)
 
-    throw new HandledError('400 Bad Request')
+    let error = new HandledError('400 Bad Request')
+
+    error.error = params.error || 'invalid_request'
+    error.error_description = params.error_description
+
+    throw error
   }
 
   /**

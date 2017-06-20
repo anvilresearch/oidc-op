@@ -30,7 +30,9 @@ describe('IDToken', () => {
   const providerUri = 'https://example.com'
   var provider
 
-  before(() => {
+  before(function () {
+    this.timeout(5000)
+
     let configPath = path.join(__dirname, 'config', 'provider.json')
 
     let storedConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'))

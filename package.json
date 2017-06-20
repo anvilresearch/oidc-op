@@ -7,7 +7,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "mocha test -w",
+    "test": "mocha test",
     "jsdoc": "jsdoc -c jsdoc.json -r"
   },
   "repository": {
@@ -38,19 +38,19 @@
   "homepage": "https://github.com/anvilresearch/oidc-op#README",
   "dependencies": {
     "base64url": "^2.0.0",
-    "@trust/jose": "^0.1.2",
+    "@trust/jose": "^0.1.3",
     "@trust/json-document": "^0.1.4",
     "@trust/keychain": "^0.1.1",
     "pem-jwk": "^1.5.1",
     "qs": "^6.2.0",
-    "@trust/webcrypto": "0.0.2"
+    "@trust/webcrypto": "0.2.1"
   },
   "devDependencies": {
     "chai": "^4.0.1",
-    "chai-as-promised": "^6.0.0",
-    "dirty-chai": "^1.2.2",
+    "chai-as-promised": "^7.0.0",
+    "dirty-chai": "^2.0.0",
     "mocha": "^3.2.0",
-    "node-mocks-http": "^1.5.5",
+    "node-mocks-http": "^1.6.3",
     "sinon": "^2.3.2",
     "sinon-chai": "^2.8.0"
   }

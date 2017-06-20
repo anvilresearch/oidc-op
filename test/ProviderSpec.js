@@ -29,6 +29,7 @@ const JWKSetRequest = require(path.join(cwd, 'src', 'handlers', 'JWKSetRequest')
 const TokenRequest = require(path.join(cwd, 'src', 'handlers', 'TokenRequest'))
 const UserInfoRequest = require(path.join(cwd, 'src', 'handlers', 'UserInfoRequest'))
 const RPInitiatedLogoutRequest = require(path.join(cwd, 'src', 'handlers', 'RPInitiatedLogoutRequest'))
+const {JSONSchema} = require('@trust/json-document')
 
 /**
  * Tests
@@ -43,22 +44,22 @@ describe('OpenID Connect Provider', () => {
       Provider.schema.should.equal(ProviderSchema)
     })
 
-    it('should be an instance of JSONSchema')
+    it('should be an instance of JSONSchema', () => {
+      ProviderSchema.should.be.an.instanceof(JSONSchema)
+    })
   })
 
   /**
    * Constructor
    */
   describe('constructor', () => {
-    it('should set the host')
-    it('should call initialize on the instance')
-  })
+    it('should initialize default endpoints', () => {
+      sinon.spy(Provider, 'initializeEndpoints')
 
-  /**
-   * Initialize
-   */
-  describe('initialize', () => {
-    it('should initialize based on the defined schema')
+      new Provider({ issuer: 'https://example.com' })
+
+      expect(Provider.initializeEndpoints).to.have.been.called()
+    })
   })
 
   /**

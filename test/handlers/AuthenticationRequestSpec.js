@@ -5,14 +5,17 @@
  */
 const cwd = process.cwd()
 const path = require('path')
+const fs = require('fs')
 const chai = require('chai')
 const sinon = require('sinon')
-const sinonChai = require('sinon-chai')
+const HttpMocks = require('node-mocks-http')
+const MemoryStore = require(path.join(cwd, 'test', 'backends', 'MemoryStore'))
 
 /**
  * Assertions
  */
-chai.use(sinonChai)
+chai.use(require('dirty-chai'))
+chai.use(require('sinon-chai'))
 chai.should()
 let expect = chai.expect
 
@@ -20,45 +23,106 @@ let expect = chai.expect
  * Code under test
  */
 const AuthenticationRequest = require(path.join(cwd, 'src', 'handlers', 'AuthenticationRequest'))
+const AccessToken = require(path.join(cwd, 'src', 'AccessToken'))
+const IDToken = require(path.join(cwd, 'src', 'IDToken'))
+const Provider = require(path.join(cwd, 'src', 'Provider'))
 
 /**
  * Tests
  */
 describe('AuthenticationRequest', () => {
+  const host = {
+    authenticate: (request) => {
+      request.subject = { '_id': 'user1' }
+      return request
+    },
+    obtainConsent: (request) => {
+      request.consent = true
+      return request
+    }
+  }
+  let provider, params, req, res, request
+
+  before(function () {
+    this.timeout(5000)
+
+    let configPath = path.join(__dirname, '..', 'config', 'provider.json')
+
+    let storedConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+
+    provider = new Provider(storedConfig)
+
+    provider.inject({ host })
+    provider.inject({ backend: new MemoryStore() })
+
+    return provider.initializeKeyChain(provider.keys)
+  })
+
+  beforeEach(() => {
+    res = HttpMocks.createResponse()
+    params = {}
+    req = HttpMocks.createRequest({ method: 'GET', query: params })
+    provider.backend.data = {}
+  })
 
   /**
    * Handle
    */
-  describe('handle', () => {})
+  describe('handle', () => {
+    let client = {
+      redirect_uris: 'https://example.com/callback',
+      client_id: 'uuid'
+    }
+    let params = {
+      client_id: 'uuid',
+      redirect_uri: 'https://example.com/callback',
+      response_type: 'id_token token',
+      scope: 'openid',
+      nonce: 'n0nc3'
+    }
+
+    beforeEach(() => {
+      provider.backend.data.clients = {}
+      provider.backend.put('clients', 'uuid', client)
+    })
+
+    it('should create and execute an AuthenticationRequest', () => {
+      req = HttpMocks.createRequest({ method: 'GET', query: params })
+
+      return AuthenticationRequest.handle(req, res, provider)
+        .then(() => {
+          let redirectUrl = res._getRedirectUrl()
+          expect(redirectUrl.startsWith('https://example.com/callback#access_token'))
+            .to.be.true()
+
+          expect(res._getStatusCode()).to.equal(302)
+        })
+    })
+  })
 
   /**
    * Constructor
    */
   describe('constructor', () => {
-    let params, req, res, host, provider
-
-    before(() => {
+    beforeEach(() => {
       params = { response_type: 'code' }
-      req = { method: 'GET', query: params }
-      res = {}
-      host = {}
-      provider = { host }
     })
 
     it('should set "params" from request query', () => {
-      let req = { method: 'GET', query: params }
+      req = HttpMocks.createRequest({ method: 'GET', query: params })
       let request = new AuthenticationRequest(req, res, provider)
       request.params.should.equal(params)
     })
 
     it('should set "params" from request body', () => {
-      let req = { method: 'GET', query: params }
+      req = HttpMocks.createRequest({ method: 'GET', query: params })
       let request = new AuthenticationRequest(req, res, provider)
       request.params.should.equal(params)
     })
 
     it('should set "responseTypes"', () => {
-      let req = { method: 'GET', query: { response_type: 'code id_token token' } }
+      params = { response_type: 'code id_token token' }
+      req = HttpMocks.createRequest({ method: 'GET', query: params })
       let request = new AuthenticationRequest(req, res, provider)
       request.responseTypes.should.eql([ 'code', 'id_token', 'token' ])
     })
@@ -87,11 +151,9 @@ describe('AuthenticationRequest', () => {
    * Supported Response Types
    */
   describe('supportedResponseType', () => {
-    let res, host, provider
+    let provider
 
     beforeEach(() => {
-      res = {}
-      host = {}
       provider = { host, response_types_supported: ['code id_token'] }
     })
 
@@ -114,11 +176,9 @@ describe('AuthenticationRequest', () => {
    * Supported Response Mode
    */
   describe('supportedResponseMode', () => {
-    let res, host, provider
+    let provider
 
     beforeEach(() => {
-      res = {}
-      host = {}
       provider = { host, response_modes_supported: ['query', 'fragment'] }
     })
 
@@ -177,17 +237,13 @@ describe('AuthenticationRequest', () => {
    * Validate
    */
   describe('validate', () => {
+    let request, provider, client
 
     describe('with missing client_id parameter', () => {
-      let params, req, res, host, provider, request
 
       before(() => {
+        provider = { host: {} }
         sinon.stub(AuthenticationRequest.prototype, 'forbidden')
-        params = {}
-        req = { method: 'GET', query: params }
-        res = {}
-        host = {}
-        provider = { host }
         request = new AuthenticationRequest(req, res, provider)
         request.validate(request)
       })
@@ -205,15 +261,10 @@ describe('AuthenticationRequest', () => {
     })
 
     describe('with missing redirect_uri parameter', () => {
-      let params, req, res, host, provider, request
-
       before(() => {
         sinon.stub(AuthenticationRequest.prototype, 'badRequest')
         params = { client_id: 'uuid' }
-        req = { method: 'GET', query: params }
-        res = {}
-        host = {}
-        provider = { host }
+        req = HttpMocks.createRequest({ method: 'GET', query: params })
         request = new AuthenticationRequest(req, res, provider)
         request.validate(request)
       })
@@ -231,14 +282,10 @@ describe('AuthenticationRequest', () => {
     })
 
     describe('with unknown client', () => {
-      let params, req, res, host, provider, request
-
       before(() => {
         sinon.stub(AuthenticationRequest.prototype, 'unauthorized')
         params = { client_id: 'uuid', redirect_uri: 'https://example.com/callback' }
-        req = { method: 'GET', query: params }
-        res = {}
-        host = {}
+        req = HttpMocks.createRequest({ method: 'GET', query: params })
         provider = {
           host,
           backend: { get: sinon.stub().returns(Promise.resolve(null)) }
@@ -260,14 +307,10 @@ describe('AuthenticationRequest', () => {
     })
 
     describe('with mismatching redirect uri', () => {
-      let params, client, req, res, host, provider, request
-
       before(() => {
         sinon.stub(AuthenticationRequest.prototype, 'badRequest')
         params = { client_id: 'uuid', redirect_uri: 'https://example.com/wrong' }
-        req = { method: 'GET', query: params }
-        res = {}
-        host = {}
+        req = HttpMocks.createRequest({ method: 'GET', query: params })
         client = { redirect_uris: ['https://example.com/callback'] }
         provider = {
           host,
@@ -290,22 +333,19 @@ describe('AuthenticationRequest', () => {
     })
 
     describe('with missing response_type parameter', () => {
-      let params, req, res, host, provider, request
-
       before(() => {
         sinon.stub(AuthenticationRequest.prototype, 'redirect')
         params = { client_id: 'uuid', redirect_uri: 'https://example.com/callback' }
         req = { method: 'GET', query: params }
-        res = {}
-        host = {}
+        client = {
+          redirect_uris: [
+            'https://example.com/callback'
+          ]
+        }
         provider = {
           host,
           backend: {
-            get: sinon.stub().returns(Promise.resolve({
-              redirect_uris: [
-                'https://example.com/callback'
-              ]
-            }))
+            get: sinon.stub().resolves(client)
           }
         }
         request = new AuthenticationRequest(req, res, provider)
@@ -325,8 +365,6 @@ describe('AuthenticationRequest', () => {
     })
 
     describe('with missing scope parameter', () => {
-      let params, req, res, host, provider, request
-
       before(() => {
         sinon.stub(AuthenticationRequest.prototype, 'redirect')
         params = {
@@ -335,16 +373,15 @@ describe('AuthenticationRequest', () => {
           response_type: 'code'
         }
         req = { method: 'GET', query: params }
-        res = {}
-        host = {}
+        client = {
+          redirect_uris: [
+            'https://example.com/callback'
+          ]
+        }
         provider = {
           host,
           backend: {
-            get: sinon.stub().returns(Promise.resolve({
-              redirect_uris: [
-                'https://example.com/callback'
-              ]
-            }))
+            get: sinon.stub().resolves(client)
           }
         }
         request = new AuthenticationRequest(req, res, provider)
@@ -364,8 +401,6 @@ describe('AuthenticationRequest', () => {
     })
 
     describe('with missing openid scope value', () => {
-      let params, req, res, host, provider, request
-
       before(() => {
         sinon.stub(AuthenticationRequest.prototype, 'redirect')
         params = {
@@ -375,16 +410,15 @@ describe('AuthenticationRequest', () => {
           scope: 'profile'
         }
         req = { method: 'GET', query: params }
-        res = {}
-        host = {}
+        client = {
+          redirect_uris: [
+            'https://example.com/callback'
+          ]
+        }
         provider = {
           host,
           backend: {
-            get: sinon.stub().returns(Promise.resolve({
-              redirect_uris: [
-                'https://example.com/callback'
-              ]
-            }))
+            get: sinon.stub().resolves(client)
           }
         }
         request = new AuthenticationRequest(req, res, provider)
@@ -404,8 +438,6 @@ describe('AuthenticationRequest', () => {
     })
 
     describe('with missing required nonce', () => {
-      let params, req, res, host, provider, request
-
       before(() => {
         sinon.stub(AuthenticationRequest.prototype, 'redirect')
         params = {
@@ -415,16 +447,15 @@ describe('AuthenticationRequest', () => {
           scope: 'openid profile'
         }
         req = { method: 'GET', query: params }
-        res = {}
-        host = {}
+        client = {
+          redirect_uris: [
+            'https://example.com/callback'
+          ]
+        }
         provider = {
           host,
           backend: {
-            get: sinon.stub().returns(Promise.resolve({
-              redirect_uris: [
-                'https://example.com/callback'
-              ]
-            }))
+            get: sinon.stub().resolves(client)
           }
         }
         request = new AuthenticationRequest(req, res, provider)
@@ -444,8 +475,6 @@ describe('AuthenticationRequest', () => {
     })
 
     describe('with unsupported response type', () => {
-      let params, req, res, host, provider, request
-
       before(() => {
         sinon.stub(AuthenticationRequest.prototype, 'redirect')
         params = {
@@ -456,17 +485,16 @@ describe('AuthenticationRequest', () => {
           nonce: 'n0nc3'
         }
         req = { method: 'GET', query: params }
-        res = {}
-        host = {}
+        client = {
+          redirect_uris: [
+            'https://example.com/callback'
+          ]
+        }
         provider = {
           host,
           response_types_supported: ['code', 'id_token token'],
           backend: {
-            get: sinon.stub().returns(Promise.resolve({
-              redirect_uris: [
-                'https://example.com/callback'
-              ]
-            }))
+            get: sinon.stub().resolves(client)
           }
         }
         request = new AuthenticationRequest(req, res, provider)
@@ -486,8 +514,6 @@ describe('AuthenticationRequest', () => {
     })
 
     describe('with unsupported response mode', () => {
-      let params, req, res, host, provider, request
-
       before(() => {
         sinon.stub(AuthenticationRequest.prototype, 'redirect')
         params = {
@@ -499,18 +525,17 @@ describe('AuthenticationRequest', () => {
           nonce: 'n0nc3'
         }
         req = { method: 'GET', query: params }
-        res = {}
-        host = {}
+        client = {
+          redirect_uris: [
+            'https://example.com/callback'
+          ]
+        }
         provider = {
           host,
           response_types_supported: ['code', 'id_token token'],
           response_modes_supported: ['query', 'fragment'],
           backend: {
-            get: sinon.stub().returns(Promise.resolve({
-              redirect_uris: [
-                'https://example.com/callback'
-              ]
-            }))
+            get: sinon.stub().resolves(client)
           }
         }
         request = new AuthenticationRequest(req, res, provider)
@@ -530,7 +555,7 @@ describe('AuthenticationRequest', () => {
     })
 
     describe('with valid request', () => {
-      let params, client, req, res, host, provider, request, promise
+      let promise
 
       before(() => {
         params = {
@@ -541,15 +566,13 @@ describe('AuthenticationRequest', () => {
           nonce: 'n0nc3'
         }
         req = { method: 'GET', query: params }
-        res = {}
-        host = {}
         client = { redirect_uris: 'https://example.com/callback' }
         provider = {
           host,
           response_types_supported: ['code', 'id_token token'],
           response_modes_supported: ['query', 'fragment'],
           backend: {
-            get: sinon.stub().returns(Promise.resolve(client))
+            get: sinon.stub().resolves(client)
           }
         }
         request = new AuthenticationRequest(req, res, provider)
@@ -567,15 +590,13 @@ describe('AuthenticationRequest', () => {
   })
 
   describe('authorize', () => {
+    let request
+
     describe('with consent', () => {
-      let params, client, req, res, host, provider, request, promise
+      let promise
 
       before(() => {
         sinon.stub(AuthenticationRequest.prototype, 'allow')
-        req = {}
-        res = {}
-        host = {}
-        provider = {host}
         request = new AuthenticationRequest(req, res, provider)
         request.consent = true
         promise = request.authorize(request)
@@ -591,15 +612,11 @@ describe('AuthenticationRequest', () => {
     })
 
     describe('without consent', () => {
-      let req, res, provider, request
+      let request
 
       before(() => {
         sinon.stub(AuthenticationRequest.prototype, 'deny')
         req = { method: 'GET', query: { authorize: false } }
-        res = {}
-        provider = {
-          host: {}
-        }
         request = new AuthenticationRequest(req, res, provider)
         request.authorize(request)
       })
@@ -614,7 +631,43 @@ describe('AuthenticationRequest', () => {
     })
   })
 
-  describe('allow', () => {})
+  describe('allow', () => {
+    let request, client
+
+    before(() => {
+      params = {
+        client_id: 'uuid',
+        redirect_uri: 'https://example.com/callback',
+        response_type: 'id_token token',
+        scope: 'openid',
+        nonce: 'n0nc3'
+      }
+      req = { method: 'GET', query: params }
+      client = {
+        redirect_uris: 'https://example.com/callback',
+        client_id: 'uuid'
+      }
+
+      request = new AuthenticationRequest(req, res, provider)
+      request.subject = { '_id': 'user1' }
+      request.client = client
+
+      request.redirect = (response) => { return Promise.resolve(response) }
+      sinon.spy(request, 'redirect')
+    })
+
+    it('should issue an access and id tokens if applicable', () => {
+      return request.allow(request)
+        .then(response => {
+          expect(response.token_type).to.equal('Bearer')
+          expect(response.expires_in).to.equal(3600)
+          expect(response.id_token).to.exist()
+          expect(response.id_token.split('.').length).to.equal(3)
+          expect(response.access_token).to.exist()
+          expect(response.access_token.split('.').length).to.equal(3)
+        })
+    })
+  })
 
   describe('deny', () => {
     before(() => {
@@ -634,8 +687,122 @@ describe('AuthenticationRequest', () => {
     })
   })
 
-  describe('includeAccessToken', () => {})
-  describe('includeAuthorizationCode', () => {})
-  describe('includeIDToken', () => {})
-  describe('includeSessionState', () => {})
+  describe('includeAccessToken', () => {
+    let request, authResponse
+
+    before(() => {
+      request = new AuthenticationRequest(req, res, provider)
+      authResponse = {}
+
+      sinon.stub(AccessToken, 'issueForRequest')
+      AccessToken.issueForRequest.withArgs(request, authResponse).resolves(authResponse)
+    })
+
+    after(() => {
+      AccessToken.issueForRequest.restore()
+    })
+
+    it('should pass through the request if no token is needed', () => {
+      request.responseTypes = ['id_token']
+
+      return request.includeAccessToken(authResponse)
+        .then(res => {
+          expect(res).to.equal(authResponse)
+          expect(AccessToken.issueForRequest).to.not.have.been.called()
+        })
+    })
+
+    it('should issue an access token if response type requires it', () => {
+      request.responseTypes = ['token']
+
+      return request.includeAccessToken(authResponse)
+        .then(res => {
+          expect(res).to.equal(authResponse)
+          expect(AccessToken.issueForRequest).to.have.been.called()
+        })
+    })
+  })
+
+  describe('includeAuthorizationCode', () => {
+    let request, authResponse, provider
+
+    beforeEach(() => {
+      authResponse = {}
+      provider = {
+        backend: {
+          put: sinon.stub().resolves()
+        }
+      }
+      request = new AuthenticationRequest(req, res, provider)
+      request.client = { client_id: 'client123' }
+      request.subject = { '_id': 'user1' }
+      request.responseTypes = ['code']
+      request.random = sinon.stub().returns('rand0m')
+    })
+
+    it('generates an authorization code and sets it on the response', () => {
+      return request.includeAuthorizationCode(authResponse)
+        .then(result => {
+          expect(result.code).to.equal('rand0m')
+        })
+    })
+
+    it('stores the corresponding AuthorizationCode instance', () => {
+      return request.includeAuthorizationCode(authResponse)
+        .then(result => {
+          expect(provider.backend.put).to.have.been.calledWith('codes', 'rand0m')
+        })
+    })
+  })
+
+  describe('includeIDToken', () => {
+    let req, res, provider, request, authResponse
+
+    before(() => {
+      req = { method: 'GET', query: {} }
+      res = {}
+      provider = { host: {} }
+      request = new AuthenticationRequest(req, res, provider)
+      authResponse = {}
+
+      sinon.stub(IDToken, 'issue')
+      IDToken.issue.withArgs(request, authResponse).resolves(authResponse)
+    })
+
+    after(() => {
+      IDToken.issue.restore()
+    })
+
+    it('should pass through the request if no id token is needed', () => {
+      request.responseTypes = ['token']
+
+      return request.includeIDToken(authResponse)
+        .then(res => {
+          expect(res).to.equal(authResponse)
+          expect(IDToken.issue).to.not.have.been.called()
+        })
+    })
+
+    it('should issue an id token if response type requires it', () => {
+      request.responseTypes = ['id_token']
+
+      return request.includeIDToken(authResponse)
+        .then(res => {
+          expect(res).to.equal(authResponse)
+          expect(IDToken.issue).to.have.been.called()
+        })
+    })
+  })
+
+  describe('includeSessionState', () => {
+    it('should exist', () => {
+      let req = { method: 'GET', query: {} }
+      let res = {}
+      let provider = { host: {} }
+      let request = new AuthenticationRequest(req, res, provider)
+
+      expect(() => request.includeSessionState(request))
+        .to.not.throw()
+    })
+  })
 })

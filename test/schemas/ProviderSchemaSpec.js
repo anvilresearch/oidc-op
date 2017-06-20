@@ -17,6 +17,7 @@ let expect = chai.expect
  * Code under test
  */
 const ProviderSchema = require(path.join(cwd, 'src', 'schemas', 'ProviderSchema'))
+const {JSONSchema} = require('@trust/json-document')
 
 /**
  * Tests
@@ -31,7 +32,9 @@ describe('OpenID Connect Provider Schema', () => {
    *  OpenID Providers have metadata describing their configuration. These OpenID
    *  Provider Metadata values are used by OpenID Connect:
    */
-  it('should be an instance of JSONSchema')
+  it('should be an instance of JSONSchema', () => {
+    ProviderSchema.should.be.an.instanceof(JSONSchema)
+  })
 
   /**
    *  issuer
@@ -531,10 +534,13 @@ describe('OpenID Connect Provider Schema', () => {
    *    information on how to register Clients needs to be provided in this
    *    documentation.
    */
-  it('should define type of "service_documentation"')
-  it('should define format of "service_documentation"')
-  it('should define default of "service_documentation"')
-  it('should define enum of "service_documentation"')
+  it('should define type of "service_documentation"', () => {
+    properties.service_documentation.type.should.equal('string')
+  })
+
+  it('should define format of "service_documentation"', () => {
+    properties.service_documentation.format.should.equal('uri')
+  })
 
   /**
    *  claims_locales_supported
