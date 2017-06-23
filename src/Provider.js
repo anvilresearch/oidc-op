@@ -34,7 +34,14 @@ class Provider extends JSONDocument {
   /**
    * from
    *
+   * @description
+   * Factory method, resolves with a Provider instance, initialized from the
+   * provided serialized provider `data`.
+   * If data includes an exported JWK Set, the provider's keychain is imported,
+   * otherwise, a new keychain is generated.
+   *
    * @param data {Object} Parsed JSON of a serialized Provider
+   *
    * @returns {Promise<Provider>}
    */
   static from (data) {
@@ -44,15 +51,11 @@ class Provider extends JSONDocument {
 
     // schema validation
     if (!validation.valid) {
-      return Promise.reject(validation)
+      return Promise.reject(new Error('Invalid provider data'))
     }
 
-    return KeyChain.restore(data.keys)
-      .then(keychain => {
-        provider.keys = keychain
-
-        return provider
-      })
+    return provider.initializeKeyChain(provider.keys)
+      .then(() => provider)
   }
 
   /**
