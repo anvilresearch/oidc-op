@@ -101,6 +101,26 @@ describe('TokenRequest', () => {
    * Validate
    */
   describe('validate', () => {
+    describe('with valid params', () => {
+      it('should resolve with the request', () => {
+        let params = {
+          grant_type: 'authorization_code',
+          code: 'c0de',
+          redirect_uri: 'https://example.com/callback'
+        }
+        let req = { method: 'POST', body: params }
+        let res = {}
+        let host = {}
+        let provider = { host, grant_types_supported: ['authorization_code'] }
+        let request = new TokenRequest(req, res, provider)
+
+        return request.validate(request)
+          .then(result => {
+            expect(result).to.equal(request)
+          })
+      })
+    })
+
     describe('with missing grant_type parameter', () => {
       let params, req, res, host, provider, request
 
