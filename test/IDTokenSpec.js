@@ -51,7 +51,7 @@ describe('IDToken', () => {
     })
   })
 
-  describe('issue()', () => {
+  describe('issueForRequest()', () => {
     let code
     let subject = { _id: 'user123' }
     let client = { 'client_id': 'client123' }
@@ -64,7 +64,7 @@ describe('IDToken', () => {
     })
 
     it('should issue an id token', () => {
-      return IDToken.issue(request, response)
+      return IDToken.issueForRequest(request, response)
         .then(res => {
           return JWT.decode(res['id_token'])
         })

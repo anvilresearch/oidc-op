@@ -765,12 +765,12 @@ describe('AuthenticationRequest', () => {
       request = new AuthenticationRequest(req, res, provider)
       authResponse = {}
 
-      sinon.stub(IDToken, 'issue')
-      IDToken.issue.withArgs(request, authResponse).resolves(authResponse)
+      sinon.stub(IDToken, 'issueForRequest')
+      IDToken.issueForRequest.withArgs(request, authResponse).resolves(authResponse)
     })
 
     after(() => {
-      IDToken.issue.restore()
+      IDToken.issueForRequest.restore()
     })
 
     it('should pass through the request if no id token is needed', () => {
@@ -779,7 +779,7 @@ describe('AuthenticationRequest', () => {
       return request.includeIDToken(authResponse)
         .then(res => {
           expect(res).to.equal(authResponse)
-          expect(IDToken.issue).to.not.have.been.called()
+          expect(IDToken.issueForRequest).to.not.have.been.called()
         })
     })
 
@@ -789,7 +789,7 @@ describe('AuthenticationRequest', () => {
       return request.includeIDToken(authResponse)
         .then(res => {
           expect(res).to.equal(authResponse)
-          expect(IDToken.issue).to.have.been.called()
+          expect(IDToken.issueForRequest).to.have.been.called()
         })
     })
   })

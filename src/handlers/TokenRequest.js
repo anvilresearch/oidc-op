@@ -411,7 +411,7 @@ class TokenRequest extends BaseRequest {
    * includeIDToken
    */
   includeIDToken (response) {
-    return IDToken.issue(this, response)
+    return IDToken.issueForRequest(this, response)
   }
 
   /**

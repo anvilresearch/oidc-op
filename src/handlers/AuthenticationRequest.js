@@ -305,7 +305,7 @@ class AuthenticationRequest extends BaseRequest {
     let {responseTypes} = this
 
     if (responseTypes.includes('id_token')) {
-      return IDToken.issue(this, response)
+      return IDToken.issueForRequest(this, response)
     }
 
     return Promise.resolve(response)

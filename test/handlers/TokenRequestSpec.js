@@ -1359,18 +1359,18 @@ describe('TokenRequest', () => {
       let provider = { host: {} }
       request = new TokenRequest(req, res, provider)
 
-      sinon.stub(IDToken, 'issue')
-      IDToken.issue.resolves()
+      sinon.stub(IDToken, 'issueForRequest')
+      IDToken.issueForRequest.resolves()
     })
 
     after(() => {
-      IDToken.issue.restore()
+      IDToken.issueForRequest.restore()
     })
 
     it('should issue an id token', () => {
       return request.includeIDToken(tokenResponse)
         .then(() => {
-          expect(IDToken.issue).to.have.been
+          expect(IDToken.issueForRequest).to.have.been
             .calledWith(request, tokenResponse)
         })
     })

@@ -21,7 +21,7 @@ class IDToken extends JWT {
   /**
    * issue
    */
-  static issue (request, response) {
+  static issueForRequest (request, response) {
     let {params, code, provider, client, subject} = request
     let {issuer, keys} = provider
 
