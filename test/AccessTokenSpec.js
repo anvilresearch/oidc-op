@@ -64,14 +64,49 @@ describe('AccessToken', () => {
   })
 
   describe('issueForRequest()', () => {
+    let subject = { _id: 'user123' }
+    let client = { 'client_id': 'client123' }
+    let request, response
+    let params = {}
+    let scope = ['token']
+
     describe('authentication requests', () => {
       let code
-      let subject = { _id: 'user123' }
-      let client = { 'client_id': 'client123' }
-      let request, response
-      let params = {}
 
       beforeEach(() => {
+        request = { params, code, provider, client, subject, scope }
+        response = {}
+      })
+
+      it('should issue an access token', () => {
+        return AccessToken.issueForRequest(request, response)
+          .then(res => {
+            expect(res['token_type']).to.equal('Bearer')
+            expect(res['expires_in']).to.equal(3600)
+
+            return JWT.decode(res['access_token'])
+          })
+          .then(token => {
+            expect(token.type).to.equal('JWS')
+            expect(token.header.alg).to.equal('RS256')
+            expect(token.payload.iss).to.equal(providerUri)
+            expect(token.payload.sub).to.equal('user123')
+            expect(token.payload.jti).to.exist()
+            expect(token.payload.scope).to.eql(['token'])
+          })
+      })
+    })
+
+    describe('auth code request', () => {
+      let code
+
+      beforeEach(() => {
+        code = {
+          aud: 'client123',
+          sub: 'user123',
+          scope: ['token']
+        }
+
         request = { params, code, provider, client, subject }
         response = {}
       })
@@ -89,6 +124,7 @@ describe('AccessToken', () => {
             expect(token.header.alg).to.equal('RS256')
             expect(token.payload.iss).to.equal(providerUri)
             expect(token.payload.sub).to.equal('user123')
+            expect(token.payload.scope).to.eql(['token'])
           })
       })
     })
