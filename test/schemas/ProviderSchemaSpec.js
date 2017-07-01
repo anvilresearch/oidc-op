@@ -523,7 +523,10 @@ describe('OpenID Connect Provider Schema', () => {
     properties.claims_supported.type.should.equal('array')
   })
 
-  it('should define default of "claims_supported"')
+  it('should define default of "claims_supported"', () => {
+    properties.claims_supported.default.should.eql([])
+  })
+
   it('should define enum of "claims_supported"')
 
   /**

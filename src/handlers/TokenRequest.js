@@ -30,7 +30,7 @@ class TokenRequest extends BaseRequest {
       .then(request.authenticateClient)
       .then(request.verifyAuthorizationCode)
       .then(request.grant)
-      .catch(request.error.bind(request))
+      .catch(err => request.error(err))
   }
 
   /**
@@ -60,7 +60,7 @@ class TokenRequest extends BaseRequest {
    * @returns {Promise<TokenRequest>}
    */
   validate (request) {
-    let {params,provider} = request
+    let {params} = request
 
     // MISSING GRANT TYPE
     if (!params.grant_type) {
@@ -316,9 +316,8 @@ class TokenRequest extends BaseRequest {
       })
     }
 
-    return new Promise((resolve, reject) => {
-      provider.getClient(payload.sub).then(client => {
-
+    return provider.backend.get('clients', payload.sub)
+      .then(client => {
         if (!client) {
           return request.badRequest({
             error: 'unauthorized_client',
@@ -344,20 +343,19 @@ class TokenRequest extends BaseRequest {
 
         // TODO validate the payload
 
-        resolve(request)
+        return request
       })
-    })
   }
 
   /**
    * Private Key JWT Authentication
    */
-  privateKeyJWT () {}
+  // privateKeyJWT () {}
 
   /**
    * None Authentication
    */
-  none () {}
+  // none () {}
 
   /**
    * Grant
