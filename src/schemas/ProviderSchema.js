@@ -234,7 +234,7 @@ const schema = new JSONSchema({
 
     claims_supported: {
       type: 'array',
-      default: [],
+      default: '',
       //enum: []
     },
 

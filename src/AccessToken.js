@@ -79,7 +79,6 @@ class AccessToken extends JWT {
 
     let header = { alg, kid }
     let payload = { iss, aud, sub, exp, iat, jti, scope }
-
     let jwt = new AccessToken({ header, payload, key })
 
     return jwt
@@ -143,7 +142,7 @@ class AccessToken extends JWT {
         let refresh
 
         if (code || responseTypes.includes('code')) {
-          refresh = AccessToken.random(16)
+          refresh = request.random(16)
         }
 
         if (refresh) {
@@ -154,6 +153,7 @@ class AccessToken extends JWT {
 
       // resolve the response
       .then(() => response)
+      .catch(console.error.bind(console))
   }
 
   static random (byteLen) {

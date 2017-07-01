@@ -30,7 +30,6 @@ const TokenRequest = require(path.join(cwd, 'src', 'handlers', 'TokenRequest'))
 const UserInfoRequest = require(path.join(cwd, 'src', 'handlers', 'UserInfoRequest'))
 const RPInitiatedLogoutRequest = require(path.join(cwd, 'src', 'handlers', 'RPInitiatedLogoutRequest'))
 const {JSONSchema} = require('@trust/json-document')
-const KeyChain = require('@trust/keychain')
 
 /**
  * Tests
@@ -60,46 +59,6 @@ describe('OpenID Connect Provider', () => {
       new Provider({ issuer: 'https://example.com' })
 
       expect(Provider.initializeEndpoints).to.have.been.called()
-    })
-  })
-
-  /**
-   * From
-   */
-  describe('from', () => {
-    before(() => {
-      sinon.stub(Provider.prototype, 'initializeKeyChain')
-      Provider.prototype.initializeKeyChain.resolves()
-    })
-
-    after(() => {
-      Provider.prototype.initializeKeyChain.restore()
-    })
-
-    it('should throw an error on invalid provider data', done => {
-      Provider.from({})
-        .catch(err => {
-          expect(err.message).to.match(/Invalid provider data/)
-          done()
-        })
-    })
-
-    it('should initialize the provider keychain', () => {
-      let data = { issuer: 'https://example.com' }
-
-      return Provider.from(data)
-        .then(() => {
-          expect(Provider.prototype.initializeKeyChain).to.have.been.called()
-        })
-    })
-
-    it('should return a Provider instance', () => {
-      let data = { issuer: 'https://example.com' }
-
-      return Provider.from(data)
-        .then(provider => {
-          expect(provider).to.be.an.instanceof(Provider)
-        })
     })
   })
 
@@ -285,105 +244,6 @@ describe('OpenID Connect Provider', () => {
     it('should invoke the RPInitiatedLogoutRequest handler', () => {
       RPInitiatedLogoutRequest.handle.should.have.been
         .calledWith(req, res, provider)
-    })
-  })
-
-  describe('initializeKeyChain', () => {
-    let provider
-
-    before(() => {
-      sinon.stub(Provider.prototype, 'generateKeyChain').resolves()
-      sinon.stub(Provider.prototype, 'importKeyChain').resolves()
-
-    })
-
-    beforeEach(() => {
-      provider = new Provider({ issuer: 'https://example.com' })
-    })
-
-    after(() => {
-      Provider.prototype.generateKeyChain.restore()
-      Provider.prototype.importKeyChain.restore()
-    })
-
-    it('should generate a new keychain if no data is provided', () => {
-      return provider.initializeKeyChain()
-        .then(() => {
-          expect(Provider.prototype.generateKeyChain).to.have.been.called()
-        })
-    })
-
-    it('should import a keychain if serialized data is provided', () => {
-      let jwks = { keys: [] }
-      return provider.initializeKeyChain(jwks)
-        .then(() => {
-          expect(Provider.prototype.importKeyChain).to.have.been.calledWith(jwks)
-        })
-    })
-  })
-
-  describe('generateKeyChain', () => {
-    let provider
-
-    beforeEach(() => {
-      provider = new Provider({ issuer: 'https://example.com' })
-    })
-
-    it('should return a new keychain', () => {
-      return provider.generateKeyChain()
-        .then(keys => {
-          expect(keys).to.be.an.instanceof(KeyChain)
-          expect(keys.descriptor).to.have.property('id_token')
-        })
-    })
-  })
-
-  describe('importKeyChain', () => {
-    let provider
-    const kc = {}
-
-    before(() => {
-      sinon.stub(KeyChain, 'restore').resolves(kc)
-    })
-
-    after(() => {
-      KeyChain.restore.restore()
-    })
-
-    beforeEach(() => {
-      provider = new Provider({ issuer: 'https://example.com' })
-    })
-
-    it('should throw an error if no keychain is passed', done => {
-      provider.importKeyChain()
-        .catch(err => {
-          expect(err.message).to.match(/Cannot import empty keychain/)
-          done()
-        })
-    })
-
-    it('should restore the keychain from provided data', () => {
-      let data = {}
-      return provider.importKeyChain(data)
-        .then(() => {
-          expect(KeyChain.restore).to.have.been.calledWith(data)
-        })
-    })
-
-    it('should set the generated keychain on the provider instance', () => {
-      let data = {}
-      return provider.importKeyChain(data)
-        .then(() => {
-          expect(provider.keys).to.equal(kc)
-        })
-    })
-
-    it('should return the provider instance', () => {
-      let data = {}
-      return provider.importKeyChain(data)
-        .then(result => {
-          expect(result).to.equal(provider)
-        })
     })
   })
 })
