@@ -8,6 +8,7 @@ const BaseRequest = require('./BaseRequest')
 const AccessToken = require('../AccessToken')
 const AuthorizationCode = require('../AuthorizationCode')
 const IDToken = require('../IDToken')
+const { JWT } = require('@trust/jose')
 
 /**
  * AuthenticationRequest
@@ -27,6 +28,7 @@ class AuthenticationRequest extends BaseRequest {
 
     return Promise
       .resolve(request)
+      .then(request => request.decodeRequestParam(request))
       .then(request.validate)
       .then(host.authenticate)
       .then(host.obtainConsent)
@@ -46,6 +48,121 @@ class AuthenticationRequest extends BaseRequest {
     this.params = AuthenticationRequest.getParams(this)
     this.responseTypes = AuthenticationRequest.getResponseTypes(this)
     this.responseMode = AuthenticationRequest.getResponseMode(this)
+  }
+
+  /**
+   * decodeRequestParam
+   *
+   * @description
+   * Decodes, validates and loads a Request Object (passed by value)
+   *
+   * @see https://openid.net/specs/openid-connect-core-1_0.html#RequestObject
+   *
+   * @param request {AuthenticationRequest}
+   *
+   * @returns {Promise<AuthenticationRequest>}
+   */
+  decodeRequestParam (request) {
+    let { params } = request
+
+    if (!params['request']) {
+      return Promise.resolve(request)  // Pass through, no request param present
+    }
+
+    return Promise.resolve()
+      .then(() => JWT.decode(params['request']))
+
+      .catch(err => {
+        request.redirect({
+          error: 'invalid_request_object',
+          error_description: err.message,
+        })
+      })
+
+      .then(requestJwt => request.validateRequestParam(requestJwt))
+
+      .then(requestJwt => {
+        request.params = Object.assign({}, params, requestJwt.payload)
+      })
+
+      .then(() => request)
+  }
+
+  /**
+   * validateRequestParam
+   *
+   * @description
+   * Validates the Request Object jwt (passed by value)
+   *
+   * @param jwt {JWT} Decoded request object
+   *
+   * @returns {Promise<JWT>} Resolves with the decoded request jwt
+   */
+  validateRequestParam (jwt) {
+    let { params } = this
+
+    return Promise.resolve()
+
+      .then(() => {
+        // request and request_uri parameters MUST NOT be included in Request Objects
+        if (jwt.request) {
+          return this.redirect({
+            error: 'invalid_request_object',
+            error_description: 'Illegal request claim in payload'
+          })
+        }
+        if (jwt.request_uri) {
+          return this.redirect({
+            error: 'invalid_request_object',
+            error_description: 'Illegal request_uri claim in payload'
+          })
+        }
+      })
+
+      // TODO:
+      // Should an OP not support the request_parameter_supported parameter
+      // and an RP uses it, the OP MUST return the request_not_supported error.
+
+      .then(() => {
+        // So that the request is a valid OAuth 2.0 Authorization Request, values
+        // for the response_type and client_id parameters MUST be included using
+        // the OAuth 2.0 request syntax, since they are REQUIRED by OAuth 2.0.
+        // The values for these parameters MUST match those in the Request Object,
+        // if present.
+        if (jwt.client_id && jwt.client_id !== params.client_id) {
+          return this.forbidden({
+            error: 'unauthorized_client',
+            error_description: 'Mismatching client id in request object'
+          })
+        }
+
+        if (jwt.response_type && jwt.response_type !== params.response_type) {
+          return this.redirect({
+            error: 'invalid_request',
+            error_description: 'Mismatching response type in request object',
+          })
+        }
+
+        // Even if a scope parameter is present in the Request Object value, a scope
+        // parameter MUST always be passed using the OAuth 2.0 request syntax
+        // containing the openid scope value to indicate to the underlying OAuth 2.0
+        // logic that this is an OpenID Connect request.
+        if (jwt.scope && jwt.scope !== params.scope) {
+          return this.redirect({
+            error: 'invalid_scope',
+            error_description: 'Mismatching scope in request object',
+          })
+        }
+      })
+
+      // TODO:
+      // For Signature Validation, the alg Header Parameter in the JOSE Header
+      // MUST match the value of the request_object_signing_alg set during Client
+      // Registration or a value that was pre-registered by
+      // other means. The signature MUST be validated against the appropriate key
+      // for that client_id and algorithm.
+
+      .then(() => jwt)
   }
 
   /**
