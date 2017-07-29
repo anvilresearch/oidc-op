@@ -148,6 +148,47 @@ describe('AuthenticationRequest', () => {
     })
   })
 
+  describe('loadClient', () => {
+    const clientId = 'https://app.com'
+    let client
+
+    beforeEach(() => {
+      client = { client_id: clientId }
+      params = { client_id: clientId, response_type: 'id_token token' }
+      req = HttpMocks.createRequest({ method: 'GET', query: params })
+      request = new AuthenticationRequest(req, res, provider)
+      provider.backend.get = sinon.stub().withArgs('clients', clientId)
+        .resolves(client)
+    })
+
+    it('should load and set on the request the client for the given client_id', () => {
+      return request.loadClient(request)
+        .then(returnedRequest => {
+          expect(returnedRequest.client).to.equal(client)
+        })
+    })
+
+    it('should pass through the request if no client_id present in params', () => {
+      delete request.params['client_id']
+
+      return request.loadClient(request)
+        .then(returnedRequest => {
+          expect(returnedRequest).to.equal(request)
+          expect(returnedRequest.client).to.be.undefined()
+        })
+    })
+
+    it('should pass through the request if no client is found for the client_id', () => {
+      request.provider.backend.get = sinon.stub().resolves(null)
+
+      return request.loadClient(request)
+        .then(returnedRequest => {
+          expect(returnedRequest).to.equal(request)
+          expect(returnedRequest.client).to.be.null()
+        })
+    })
+  })
+
   /**
    * Supported Response Types
    */
@@ -352,7 +393,10 @@ describe('AuthenticationRequest', () => {
       params = { client_id: 'https://app.com', response_type: 'code id_token' }
       req = HttpMocks.createRequest({ method: 'GET', query: params })
       request = new AuthenticationRequest(req, res, provider)
-      requestJwt = {}
+      requestJwt = {
+        header: { alg: 'RS256' },
+        payload: {}
+      }
       sinon.spy(AuthenticationRequest.prototype, 'redirect')
       sinon.spy(AuthenticationRequest.prototype, 'forbidden')
     })
@@ -370,7 +414,7 @@ describe('AuthenticationRequest', () => {
     })
 
     it('should throw an error if a request param is present in the jwt', done => {
-      requestJwt = { request: {} }
+      requestJwt.payload = { request: {} }
 
       request.validateRequestParam(requestJwt)
         .catch(err => {
@@ -384,7 +428,7 @@ describe('AuthenticationRequest', () => {
     })
 
     it('should throw an error if a request_uri param is present in the jwt', done => {
-      requestJwt = { request_uri: {} }
+      requestJwt.payload = { request_uri: {} }
 
       request.validateRequestParam(requestJwt)
         .catch(err => {
@@ -402,7 +446,7 @@ describe('AuthenticationRequest', () => {
       req = HttpMocks.createRequest({ method: 'GET', query: params })
       request = new AuthenticationRequest(req, res, provider)
 
-      requestJwt = { client_id: 'something else' }
+      requestJwt.payload = { client_id: 'something else' }
 
       request.validateRequestParam(requestJwt)
         .catch(err => {
@@ -420,7 +464,7 @@ describe('AuthenticationRequest', () => {
       req = HttpMocks.createRequest({ method: 'GET', query: params })
       request = new AuthenticationRequest(req, res, provider)
 
-      requestJwt = { response_type: 'token' }
+      requestJwt.payload = { response_type: 'token' }
 
       request.validateRequestParam(requestJwt)
         .catch(err => {
@@ -438,7 +482,7 @@ describe('AuthenticationRequest', () => {
       req = HttpMocks.createRequest({ method: 'GET', query: params })
       request = new AuthenticationRequest(req, res, provider)
 
-      requestJwt = { scope: 'something else' }
+      requestJwt.payload = { scope: 'something else' }
 
       request.validateRequestParam(requestJwt)
         .catch(err => {
@@ -507,11 +551,9 @@ describe('AuthenticationRequest', () => {
         sinon.stub(AuthenticationRequest.prototype, 'unauthorized')
         params = { client_id: 'uuid', redirect_uri: 'https://example.com/callback' }
         req = HttpMocks.createRequest({ method: 'GET', query: params })
-        provider = {
-          host,
-          backend: { get: sinon.stub().returns(Promise.resolve(null)) }
-        }
+        provider = { host }
         request = new AuthenticationRequest(req, res, provider)
+        request.client = null
         request.validate(request)
       })
 
@@ -533,11 +575,9 @@ describe('AuthenticationRequest', () => {
         params = { client_id: 'uuid', redirect_uri: 'https://example.com/wrong' }
         req = HttpMocks.createRequest({ method: 'GET', query: params })
         client = { redirect_uris: ['https://example.com/callback'] }
-        provider = {
-          host,
-          backend: { get: sinon.stub().returns(Promise.resolve(client)) }
-        }
+        provider = { host }
         request = new AuthenticationRequest(req, res, provider)
+        request.client = client
         request.validate(request)
       })
 
@@ -563,13 +603,9 @@ describe('AuthenticationRequest', () => {
             'https://example.com/callback'
           ]
         }
-        provider = {
-          host,
-          backend: {
-            get: sinon.stub().resolves(client)
-          }
-        }
+        provider = { host }
         request = new AuthenticationRequest(req, res, provider)
+        request.client = client
         request.validate(request)
       })
 
@@ -599,13 +635,9 @@ describe('AuthenticationRequest', () => {
             'https://example.com/callback'
           ]
         }
-        provider = {
-          host,
-          backend: {
-            get: sinon.stub().resolves(client)
-          }
-        }
+        provider = { host }
         request = new AuthenticationRequest(req, res, provider)
+        request.client = client
         request.validate(request)
       })
 
@@ -636,13 +668,9 @@ describe('AuthenticationRequest', () => {
             'https://example.com/callback'
           ]
         }
-        provider = {
-          host,
-          backend: {
-            get: sinon.stub().resolves(client)
-          }
-        }
+        provider = { host }
         request = new AuthenticationRequest(req, res, provider)
+        request.client = client
         request.validate(request)
       })
 
@@ -673,13 +701,9 @@ describe('AuthenticationRequest', () => {
             'https://example.com/callback'
           ]
         }
-        provider = {
-          host,
-          backend: {
-            get: sinon.stub().resolves(client)
-          }
-        }
+        provider = { host }
         request = new AuthenticationRequest(req, res, provider)
+        request.client = client
         request.validate(request)
       })
 
@@ -713,12 +737,10 @@ describe('AuthenticationRequest', () => {
         }
         provider = {
           host,
-          response_types_supported: ['code', 'id_token token'],
-          backend: {
-            get: sinon.stub().resolves(client)
-          }
+          response_types_supported: ['code', 'id_token token']
         }
         request = new AuthenticationRequest(req, res, provider)
+        request.client = client
         request.validate(request)
       })
 
@@ -754,12 +776,10 @@ describe('AuthenticationRequest', () => {
         provider = {
           host,
           response_types_supported: ['code', 'id_token token'],
-          response_modes_supported: ['query', 'fragment'],
-          backend: {
-            get: sinon.stub().resolves(client)
-          }
+          response_modes_supported: ['query', 'fragment']
         }
         request = new AuthenticationRequest(req, res, provider)
+        request.client = client
         request.validate(request)
       })
 
@@ -791,21 +811,15 @@ describe('AuthenticationRequest', () => {
         provider = {
           host,
           response_types_supported: ['code', 'id_token token'],
-          response_modes_supported: ['query', 'fragment'],
-          backend: {
-            get: sinon.stub().resolves(client)
-          }
+          response_modes_supported: ['query', 'fragment']
         }
         request = new AuthenticationRequest(req, res, provider)
-        promise = request.validate(request)
+        request.client = client
       })
 
-      it('should return a promise', () => {
-        promise.should.be.instanceof(Promise)
-      })
-
-      it('should set client on the request', () => {
-        request.client.should.equal(client)
+      it('should return the request', () => {
+        let result = request.validate(request)
+        expect(result).to.equal(request)
       })
     })
   })
