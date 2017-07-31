@@ -300,7 +300,6 @@ describe('AuthenticationRequest', () => {
         key,
         header: { alg: 'RS256' },
         payload: {
-          'iss': 'https://example.com',
           'aud': [ 'https://rs.com ', 'https://app.com' ],
           'azp': 'https://app.com',
           'response_type': 'code id_token',
@@ -371,15 +370,16 @@ describe('AuthenticationRequest', () => {
 
     it('should assign its payload claims to request, superseding its params', () => {
       params = {
-        iss: 'iss1', redirect_uri: 'whatever', request: requestJwt,
-        client_id: 'https://app.com', response_type: 'code id_token'
+        redirect_uri: 'whatever',
+        request: requestJwt,
+        client_id: 'https://app.com',
+        response_type: 'code id_token'
       }
       req = HttpMocks.createRequest({ method: 'GET', query: params })
       let request = new AuthenticationRequest(req, res, provider)
 
       return request.decodeRequestParam(request)
         .then(result => {
-          expect(result.params.iss).to.equal('https://example.com')
           expect(result.params.redirect_uri).to.equal('https://app.com/callback')
           expect(result.params.aud).to.eql([ 'https://rs.com ', 'https://app.com' ])
         })
