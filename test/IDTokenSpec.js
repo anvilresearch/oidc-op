@@ -76,6 +76,8 @@ describe('IDToken', () => {
             expect(token.header.alg).to.equal('RS256')
             expect(token.payload.iss).to.equal(providerUri)
             expect(token.payload.sub).to.equal('user123')
+            expect(token.payload.aud).to.equal('client123')
+            expect(token.payload.azp).to.equal('client123')
           })
       })
     })
@@ -106,6 +108,7 @@ describe('IDToken', () => {
             expect(token.payload.iss).to.equal(providerUri)
             expect(token.payload.sub).to.equal('user123')
             expect(token.payload.aud).to.equal('client123')
+            expect(token.payload.azp).to.equal('client123')
             expect(token.payload.nonce).to.equal('nonce123')
             expect(token.payload.at_hash).to.equal('tGwJZ3NDJh8LQ5pHJCIiXg')
             expect(token.payload.c_hash).to.equal('OAO0dgmipGQFRlmxSgzfug')
@@ -120,6 +123,7 @@ describe('IDToken', () => {
     beforeEach(() => {
       options = {
         aud: 'client123',
+        azp: 'client123',
         sub: 'user123',
         nonce: 'n0nce',
         at_hash: 'athash123',
@@ -132,6 +136,7 @@ describe('IDToken', () => {
 
       expect(token.payload.iss).to.equal(provider.issuer)
       expect(token.payload.aud).to.equal('client123')
+      expect(token.payload.azp).to.equal('client123')
       expect(token.payload.sub).to.equal('user123')
       expect(token.payload.nonce).to.equal(options.nonce)
       expect(token.payload.at_hash).to.equal(options.at_hash)
