@@ -10,6 +10,7 @@ const chai = require('chai')
 const sinon = require('sinon')
 const HttpMocks = require('node-mocks-http')
 const MemoryStore = require(path.join(cwd, 'test', 'backends', 'MemoryStore'))
+const { JWT } = require('@trust/jose')
 
 /**
  * Assertions
@@ -147,6 +148,47 @@ describe('AuthenticationRequest', () => {
     })
   })
 
+  describe('loadClient', () => {
+    const clientId = 'https://app.com'
+    let client
+
+    beforeEach(() => {
+      client = { client_id: clientId }
+      params = { client_id: clientId, response_type: 'id_token token' }
+      req = HttpMocks.createRequest({ method: 'GET', query: params })
+      request = new AuthenticationRequest(req, res, provider)
+      provider.backend.get = sinon.stub().withArgs('clients', clientId)
+        .resolves(client)
+    })
+
+    it('should load and set on the request the client for the given client_id', () => {
+      return request.loadClient(request)
+        .then(returnedRequest => {
+          expect(returnedRequest.client).to.equal(client)
+        })
+    })
+
+    it('should pass through the request if no client_id present in params', () => {
+      delete request.params['client_id']
+
+      return request.loadClient(request)
+        .then(returnedRequest => {
+          expect(returnedRequest).to.equal(request)
+          expect(returnedRequest.client).to.be.undefined()
+        })
+    })
+
+    it('should pass through the request if no client is found for the client_id', () => {
+      request.provider.backend.get = sinon.stub().resolves(null)
+
+      return request.loadClient(request)
+        .then(returnedRequest => {
+          expect(returnedRequest).to.equal(request)
+          expect(returnedRequest.client).to.be.null()
+        })
+    })
+  })
+
   /**
    * Supported Response Types
    */
@@ -234,6 +276,227 @@ describe('AuthenticationRequest', () => {
   })
 
   /**
+   * Decode request parameter
+   */
+  describe('decodeRequestParam', () => {
+    let requestJwt
+
+    before(() => {
+      sinon.spy(AuthenticationRequest.prototype, 'redirect')
+    })
+
+    after(() => {
+      AuthenticationRequest.prototype.redirect.restore()
+    })
+
+    beforeEach(() => {
+      params = {
+        client_id: 'https://app.com', response_type: 'code id_token'
+      }
+
+      let key = provider.keys.token.signing['RS256'].privateKey
+
+      let requestObject = new JWT({
+        key,
+        header: { alg: 'RS256' },
+        payload: {
+          'iss': 'https://example.com',
+          'aud': [ 'https://rs.com ', 'https://app.com' ],
+          'azp': 'https://app.com',
+          'response_type': 'code id_token',
+          'client_id': 'https://app.com',
+          'redirect_uri': 'https://app.com/callback'
+        }
+      }, { filter: false })
+
+      return requestObject.encode()
+        .then(jwt => {
+          requestJwt = jwt
+        })
+    })
+
+    it('should pass through the request if no request parameter exists', () => {
+      req = HttpMocks.createRequest({ method: 'GET', query: params })
+      let request = new AuthenticationRequest(req, res, provider)
+
+      return request.decodeRequestParam(request)
+        .then(result => {
+          expect(result).to.equal(request)
+        })
+    })
+
+    it('should throw an error on an invalid request object', done => {
+      // invalid_request_object
+      params.request = 'invalid jwt'
+      req = HttpMocks.createRequest({ method: 'GET', query: params })
+      let request = new AuthenticationRequest(req, res, provider)
+
+      request.decodeRequestParam(request)
+        .catch(() => {
+          expect(request.redirect).to.have.been.calledWith({
+            error: 'invalid_request_object',
+            error_description: 'Invalid JWT compact serialization'
+          })
+          done()
+        })
+    })
+
+    it('should validate the request object', () => {
+      params.request = requestJwt
+      req = HttpMocks.createRequest({ method: 'GET', query: params })
+      let request = new AuthenticationRequest(req, res, provider)
+
+      sinon.spy(request, 'validateRequestParam')
+
+      return request.decodeRequestParam(request)
+        .then(() => {
+          expect(request.validateRequestParam).to.have.been.called()
+        })
+    })
+
+    it('should resolve with the argument (request object)', () => {
+      params = {
+        'response_type': 'code id_token',
+        'client_id': 'https://app.com',
+        request: requestJwt
+      }
+      req = HttpMocks.createRequest({ method: 'GET', query: params })
+      let request = new AuthenticationRequest(req, res, provider)
+
+      return request.decodeRequestParam(request)
+        .then(result => {
+          expect(result).to.equal(request)
+        })
+    })
+
+    it('should assign its payload claims to request, superseding its params', () => {
+      params = {
+        iss: 'iss1', redirect_uri: 'whatever', request: requestJwt,
+        client_id: 'https://app.com', response_type: 'code id_token'
+      }
+      req = HttpMocks.createRequest({ method: 'GET', query: params })
+      let request = new AuthenticationRequest(req, res, provider)
+
+      return request.decodeRequestParam(request)
+        .then(result => {
+          expect(result.params.iss).to.equal('https://example.com')
+          expect(result.params.redirect_uri).to.equal('https://app.com/callback')
+          expect(result.params.aud).to.eql([ 'https://rs.com ', 'https://app.com' ])
+        })
+    })
+  })
+
+  describe('validateRequestParam', () => {
+    let requestJwt
+
+    beforeEach(() => {
+      params = { client_id: 'https://app.com', response_type: 'code id_token' }
+      req = HttpMocks.createRequest({ method: 'GET', query: params })
+      request = new AuthenticationRequest(req, res, provider)
+      requestJwt = {
+        header: { alg: 'RS256' },
+        payload: {}
+      }
+      sinon.spy(AuthenticationRequest.prototype, 'redirect')
+      sinon.spy(AuthenticationRequest.prototype, 'forbidden')
+    })
+
+    afterEach(() => {
+      AuthenticationRequest.prototype.redirect.restore()
+      AuthenticationRequest.prototype.forbidden.restore()
+    })
+
+    it('should pass through the request object jwt if no errors', () => {
+      return request.validateRequestParam(requestJwt)
+        .then(result => {
+          expect(result).to.equal(requestJwt)
+        })
+    })
+
+    it('should throw an error if a request param is present in the jwt', done => {
+      requestJwt.payload = { request: {} }
+
+      request.validateRequestParam(requestJwt)
+        .catch(err => {
+          expect(err).to.exist()
+          expect(request.redirect).to.have.been.calledWith({
+            error: 'invalid_request_object',
+            error_description: 'Illegal request claim in payload'
+          })
+          done()
+        })
+    })
+
+    it('should throw an error if a request_uri param is present in the jwt', done => {
+      requestJwt.payload = { request_uri: {} }
+
+      request.validateRequestParam(requestJwt)
+        .catch(err => {
+          expect(err).to.exist()
+          expect(request.redirect).to.have.been.calledWith({
+            error: 'invalid_request_object',
+            error_description: 'Illegal request_uri claim in payload'
+          })
+          done()
+        })
+    })
+
+    it('should throw an error on mismatching client_id', done => {
+      params = { client_id: 'https://app.com', response_type: 'code id_token' }
+      req = HttpMocks.createRequest({ method: 'GET', query: params })
+      request = new AuthenticationRequest(req, res, provider)
+
+      requestJwt.payload = { client_id: 'something else' }
+
+      request.validateRequestParam(requestJwt)
+        .catch(err => {
+          expect(err).to.exist()
+          expect(request.forbidden).to.have.been.calledWith({
+            error: 'unauthorized_client',
+            error_description: 'Mismatching client id in request object'
+          })
+          done()
+        })
+    })
+
+    it('should throw an error on mismatching response_type', done => {
+      params = { client_id: 'https://app.com', response_type: 'code id_token' }
+      req = HttpMocks.createRequest({ method: 'GET', query: params })
+      request = new AuthenticationRequest(req, res, provider)
+
+      requestJwt.payload = { response_type: 'token' }
+
+      request.validateRequestParam(requestJwt)
+        .catch(err => {
+          expect(err).to.exist()
+          expect(request.redirect).to.have.been.calledWith({
+            error: 'invalid_request',
+            error_description: 'Mismatching response type in request object',
+          })
+          done()
+        })
+    })
+
+    it('should throw an error on mismatching scope', done => {
+      params = { scope: 'openid' }
+      req = HttpMocks.createRequest({ method: 'GET', query: params })
+      request = new AuthenticationRequest(req, res, provider)
+
+      requestJwt.payload = { scope: 'something else' }
+
+      request.validateRequestParam(requestJwt)
+        .catch(err => {
+          expect(err).to.exist()
+          expect(request.redirect).to.have.been.calledWith({
+            error: 'invalid_scope',
+            error_description: 'Mismatching scope in request object',
+          })
+          done()
+        })
+    })
+  })
+
+  /**
    * Validate
    */
   describe('validate', () => {
@@ -244,6 +507,8 @@ describe('AuthenticationRequest', () => {
       before(() => {
         provider = { host: {} }
         sinon.stub(AuthenticationRequest.prototype, 'forbidden')
+        params = { 'redirect_uri': 'https://app.com/callback' }
+        req = HttpMocks.createRequest({ method: 'GET', query: params })
         request = new AuthenticationRequest(req, res, provider)
         request.validate(request)
       })
@@ -286,11 +551,9 @@ describe('AuthenticationRequest', () => {
         sinon.stub(AuthenticationRequest.prototype, 'unauthorized')
         params = { client_id: 'uuid', redirect_uri: 'https://example.com/callback' }
         req = HttpMocks.createRequest({ method: 'GET', query: params })
-        provider = {
-          host,
-          backend: { get: sinon.stub().returns(Promise.resolve(null)) }
-        }
+        provider = { host }
         request = new AuthenticationRequest(req, res, provider)
+        request.client = null
         request.validate(request)
       })
 
@@ -312,11 +575,9 @@ describe('AuthenticationRequest', () => {
         params = { client_id: 'uuid', redirect_uri: 'https://example.com/wrong' }
         req = HttpMocks.createRequest({ method: 'GET', query: params })
         client = { redirect_uris: ['https://example.com/callback'] }
-        provider = {
-          host,
-          backend: { get: sinon.stub().returns(Promise.resolve(client)) }
-        }
+        provider = { host }
         request = new AuthenticationRequest(req, res, provider)
+        request.client = client
         request.validate(request)
       })
 
@@ -342,13 +603,9 @@ describe('AuthenticationRequest', () => {
             'https://example.com/callback'
           ]
         }
-        provider = {
-          host,
-          backend: {
-            get: sinon.stub().resolves(client)
-          }
-        }
+        provider = { host }
         request = new AuthenticationRequest(req, res, provider)
+        request.client = client
         request.validate(request)
       })
 
@@ -378,13 +635,9 @@ describe('AuthenticationRequest', () => {
             'https://example.com/callback'
           ]
         }
-        provider = {
-          host,
-          backend: {
-            get: sinon.stub().resolves(client)
-          }
-        }
+        provider = { host }
         request = new AuthenticationRequest(req, res, provider)
+        request.client = client
         request.validate(request)
       })
 
@@ -415,13 +668,9 @@ describe('AuthenticationRequest', () => {
             'https://example.com/callback'
           ]
         }
-        provider = {
-          host,
-          backend: {
-            get: sinon.stub().resolves(client)
-          }
-        }
+        provider = { host }
         request = new AuthenticationRequest(req, res, provider)
+        request.client = client
         request.validate(request)
       })
 
@@ -452,13 +701,9 @@ describe('AuthenticationRequest', () => {
             'https://example.com/callback'
           ]
         }
-        provider = {
-          host,
-          backend: {
-            get: sinon.stub().resolves(client)
-          }
-        }
+        provider = { host }
         request = new AuthenticationRequest(req, res, provider)
+        request.client = client
         request.validate(request)
       })
 
@@ -492,12 +737,10 @@ describe('AuthenticationRequest', () => {
         }
         provider = {
           host,
-          response_types_supported: ['code', 'id_token token'],
-          backend: {
-            get: sinon.stub().resolves(client)
-          }
+          response_types_supported: ['code', 'id_token token']
         }
         request = new AuthenticationRequest(req, res, provider)
+        request.client = client
         request.validate(request)
       })
 
@@ -533,12 +776,10 @@ describe('AuthenticationRequest', () => {
         provider = {
           host,
           response_types_supported: ['code', 'id_token token'],
-          response_modes_supported: ['query', 'fragment'],
-          backend: {
-            get: sinon.stub().resolves(client)
-          }
+          response_modes_supported: ['query', 'fragment']
         }
         request = new AuthenticationRequest(req, res, provider)
+        request.client = client
         request.validate(request)
       })
 
@@ -570,21 +811,15 @@ describe('AuthenticationRequest', () => {
         provider = {
           host,
           response_types_supported: ['code', 'id_token token'],
-          response_modes_supported: ['query', 'fragment'],
-          backend: {
-            get: sinon.stub().resolves(client)
-          }
+          response_modes_supported: ['query', 'fragment']
         }
         request = new AuthenticationRequest(req, res, provider)
-        promise = request.validate(request)
+        request.client = client
       })
 
-      it('should return a promise', () => {
-        promise.should.be.instanceof(Promise)
-      })
-
-      it('should set client on the request', () => {
-        request.client.should.equal(client)
+      it('should return the request', () => {
+        let result = request.validate(request)
+        expect(result).to.equal(request)
       })
     })
   })

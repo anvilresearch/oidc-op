@@ -8,6 +8,7 @@ const BaseRequest = require('./BaseRequest')
 const AccessToken = require('../AccessToken')
 const AuthorizationCode = require('../AuthorizationCode')
 const IDToken = require('../IDToken')
+const { JWT } = require('@trust/jose')
 
 /**
  * AuthenticationRequest
@@ -27,6 +28,8 @@ class AuthenticationRequest extends BaseRequest {
 
     return Promise
       .resolve(request)
+      .then(request.loadClient)
+      .then(request.decodeRequestParam)
       .then(request.validate)
       .then(host.authenticate)
       .then(host.obtainConsent)
@@ -49,13 +52,151 @@ class AuthenticationRequest extends BaseRequest {
   }
 
   /**
+   * loadClient
+   *
+   * @description
+   * Loads the client registration from the backend store
+   *
+   * @param request {AuthenticationRequest}
+   *
+   * @returns {Promise<AuthenticationRequest>}
+   */
+  loadClient (request) {
+    let { provider, params } = request
+
+    if (!params.client_id) {
+      // An error for the missing client_id will be thrown in validate()
+      return Promise.resolve(request)
+    }
+
+    return provider.backend.get('clients', params.client_id)
+      .then(client => {
+        request.client = client
+      })
+      .then(() => request)
+  }
+
+  /**
+   * decodeRequestParam
+   *
+   * @description
+   * Decodes, validates and loads a Request Object (passed by value)
+   *
+   * @see https://openid.net/specs/openid-connect-core-1_0.html#RequestObject
+   *
+   * @param request {AuthenticationRequest}
+   *
+   * @returns {Promise<AuthenticationRequest>}
+   */
+  decodeRequestParam (request) {
+    let { params } = request
+
+    if (!params['request']) {
+      return Promise.resolve(request)  // Pass through, no request param present
+    }
+
+    return Promise.resolve()
+      .then(() => JWT.decode(params['request']))
+
+      .catch(err => {
+        request.redirect({
+          error: 'invalid_request_object',
+          error_description: err.message,
+        })
+      })
+
+      .then(requestJwt => request.validateRequestParam(requestJwt))
+
+      .then(requestJwt => {
+        request.params = Object.assign({}, params, requestJwt.payload)
+      })
+
+      .then(() => request)
+  }
+
+  /**
+   * validateRequestParam
+   *
+   * @description
+   * Validates the Request Object jwt (passed by value)
+   *
+   * @param jwt {JWT} Decoded request object
+   *
+   * @returns {Promise<JWT>} Resolves with the decoded request jwt
+   */
+  validateRequestParam (jwt) {
+    let { params } = this
+    let { payload } = jwt
+
+    return Promise.resolve()
+
+      .then(() => {
+        // request and request_uri parameters MUST NOT be included in Request Objects
+        if (payload.request) {
+          return this.redirect({
+            error: 'invalid_request_object',
+            error_description: 'Illegal request claim in payload'
+          })
+        }
+        if (payload.request_uri) {
+          return this.redirect({
+            error: 'invalid_request_object',
+            error_description: 'Illegal request_uri claim in payload'
+          })
+        }
+      })
+
+      .then(() => {
+        // So that the request is a valid OAuth 2.0 Authorization Request, values
+        // for the response_type and client_id parameters MUST be included using
+        // the OAuth 2.0 request syntax, since they are REQUIRED by OAuth 2.0.
+        // The values for these parameters MUST match those in the Request Object,
+        // if present.
+        if (payload.client_id && payload.client_id !== params.client_id) {
+          return this.forbidden({
+            error: 'unauthorized_client',
+            error_description: 'Mismatching client id in request object'
+          })
+        }
+
+        if (payload.response_type && payload.response_type !== params.response_type) {
+          return this.redirect({
+            error: 'invalid_request',
+            error_description: 'Mismatching response type in request object',
+          })
+        }
+
+        // Even if a scope parameter is present in the Request Object value, a scope
+        // parameter MUST always be passed using the OAuth 2.0 request syntax
+        // containing the openid scope value to indicate to the underlying OAuth 2.0
+        // logic that this is an OpenID Connect request.
+        if (payload.scope && payload.scope !== params.scope) {
+          return this.redirect({
+            error: 'invalid_scope',
+            error_description: 'Mismatching scope in request object',
+          })
+        }
+      })
+
+      // TODO:
+      // For Signature Validation, the alg Header Parameter in the JOSE Header
+      // MUST match the value of the request_object_signing_alg set during Client
+      // Registration or a value that was pre-registered by
+      // other means. The signature MUST be validated against the appropriate key
+      // for that client_id and algorithm.
+
+      .then(() => jwt)
+  }
+
+  /**
    * Validate Request
    *
    * @param {AuthenticationRequest} request
-   * @returns {Promise}
+   *
+   * @returns {AuthenticationRequest}
    */
   validate (request) {
-    let { params, provider } = request
+    const { params, client } = request
 
     // CLIENT ID IS REQUIRED
     if (!params.client_id) {
@@ -73,84 +214,74 @@ class AuthenticationRequest extends BaseRequest {
       })
     }
 
-    // RETURN A PROMISE WHICH WILL BE RESOLVED
-    // IF THE REQUEST IS VALID. ALL ERROR CONDITIONS
-    // SHOULD BE HANDLED HERE (WITH AN ERROR RESPONSE),
-    // SO THERE'S NOTHING TO CATCH.
-    return provider.backend.get('clients', params.client_id)
-      .then(client => {
-        // UNKNOWN CLIENT
-        if (!client) {
-          return request.unauthorized({
-            error: 'unauthorized_client',
-            error_description: 'Unknown client'
-          })
-        }
-
-        // ADD CLIENT TO REQUEST
-        request.client = client
-
-        // REDIRECT_URI MUST MATCH
-        if (!client.redirect_uris.includes(params.redirect_uri)) {
-          return request.badRequest({
-            error: 'invalid_request',
-            error_description: 'Mismatching redirect uri'
-          })
-        }
-
-        // RESPONSE TYPE IS REQUIRED
-        if (!params.response_type) {
-          return request.redirect({
-            error: 'invalid_request',
-            error_description: 'Missing response type',
-          })
-        }
-
-        // SCOPE IS REQUIRED
-        if (!params.scope) {
-          return request.redirect({
-            error: 'invalid_scope',
-            error_description: 'Missing scope',
-          })
-        }
-
-        // OPENID SCOPE IS REQUIRED
-        if (!params.scope.includes('openid')) {
-          return request.redirect({
-            error: 'invalid_scope',
-            error_description: 'Missing openid scope'
-          })
-        }
-
-        // NONCE MAY BE REQUIRED
-        if (!request.requiredNonceProvided()) {
-          return request.redirect({
-            error: 'invalid_request',
-            error_description: 'Missing nonce'
-          })
-        }
-
-        // RESPONSE TYPE MUST BE SUPPORTED
-        // TODO is this something the client can configure too?
-        if (!request.supportedResponseType()) {
-          return request.redirect({
-            error: 'unsupported_response_type',
-            error_description: 'Unsupported response type'
-          })
-        }
-
-        // RESPONSE MODE MUST BE SUPPORTED
-        // TODO is this something the client can configure too?
-        if (!request.supportedResponseMode()) {
-          return request.redirect({
-            error: 'unsupported_response_mode',
-            error_description: 'Unsupported response mode'
-          })
-        }
-
-        // VALID REQUEST
-        return request
+    // UNKNOWN CLIENT
+    if (!client) {
+      return request.unauthorized({
+        error: 'unauthorized_client',
+        error_description: 'Unknown client'
       })
+    }
+
+    // REDIRECT_URI MUST MATCH
+    if (!client.redirect_uris.includes(params.redirect_uri)) {
+      return request.badRequest({
+        error: 'invalid_request',
+        error_description: 'Mismatching redirect uri'
+      })
+    }
+
+    // RESPONSE TYPE IS REQUIRED
+    if (!params.response_type) {
+      return request.redirect({
+        error: 'invalid_request',
+        error_description: 'Missing response type',
+      })
+    }
+
+    // SCOPE IS REQUIRED
+    if (!params.scope) {
+      return request.redirect({
+        error: 'invalid_scope',
+        error_description: 'Missing scope',
+      })
+    }
+
+    // OPENID SCOPE IS REQUIRED
+    if (!params.scope.includes('openid')) {
+      return request.redirect({
+        error: 'invalid_scope',
+        error_description: 'Missing openid scope'
+      })
+    }
+
+    // NONCE MAY BE REQUIRED
+    if (!request.requiredNonceProvided()) {
+      return request.redirect({
+        error: 'invalid_request',
+        error_description: 'Missing nonce'
+      })
+    }
+
+    // RESPONSE TYPE MUST BE SUPPORTED
+    // TODO is this something the client can configure too?
+    if (!request.supportedResponseType()) {
+      return request.redirect({
+        error: 'unsupported_response_type',
+        error_description: 'Unsupported response type'
+      })
+    }
+
+    // RESPONSE MODE MUST BE SUPPORTED
+    // TODO is this something the client can configure too?
+    if (!request.supportedResponseMode()) {
+      return request.redirect({
+        error: 'unsupported_response_mode',
+        error_description: 'Unsupported response mode'
+      })
+    }
+
+    // VALID REQUEST
+    return request
   }
 
   /**

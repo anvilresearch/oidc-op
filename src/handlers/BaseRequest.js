@@ -59,7 +59,7 @@ class BaseRequest {
    * @returns {Object}
    */
   static getParams (request) {
-    let {req,res,provider} = request
+    let { req } = request
     return req[PARAMS[req.method]] || {}
   }
 
@@ -109,7 +109,14 @@ class BaseRequest {
     let response = qs.stringify(data)
     res.redirect(`${uri}${responseMode}${response}`)
 
-    throw new HandledError('302 Redirect')
+    let error = new HandledError('302 Redirect')
+
+    if (data.error) {
+      error.error = data.error
+      error.error_description = data.error_description
+    }
+
+    throw error
   }
 
   /**
