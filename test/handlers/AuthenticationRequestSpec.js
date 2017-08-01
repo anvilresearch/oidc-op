@@ -306,14 +306,12 @@ describe('AuthenticationRequest', () => {
           'client_id': 'https://app.com',
           'redirect_uri': 'https://app.com/callback',
           'key': {
-            "kty": "RSA",
-            "alg": "RS256",
-            "n": "xykqKb0EPomxUR-W_4oXSqFVwEoD_ZdqSiFfYH-a9r8yGfmugq-fLEuuolQSqrzR3l9U0prBBUeICYBjfuTdRinhMbqkwm8R7_U6dptHe2yILYHLAl0oEooSDKaFMe90h7yDaWiahOewnhh4BWRc_KRNATqx0XGfVmj7Vt4QQifk_xJYZPbLClf8YJ20wKPSebfDzTdh6Jv3sM6ASo5-1PQJNqvk7Dy632E3zIqcQn8wRqQ3hDCJmX3uvMQ3oQNCpJDSvO1kuB0msMWwBwzq3QtUZcDjXovVpi2j3SZfc8X1nlh2H4hge3ATwb1az6IX_OQgn4r1UIsKqIUsTocIrw",
-            "e": "AQAB",
-            "key_ops": [
-              "verify"
-            ],
-            "ext": true
+            'kty': 'RSA',
+            'alg': 'RS256',
+            'n': 'xykqKb0EPomxUR-W_4oXSqFVwEoD_ZdqSiFfYH-a9r8yGfmugq-fLEuuolQSqrzR3l9U0prBBUeICYBjfuTdRinhMbqkwm8R7_U6dptHe2yILYHLAl0oEooSDKaFMe90h7yDaWiahOewnhh4BWRc_KRNATqx0XGfVmj7Vt4QQifk_xJYZPbLClf8YJ20wKPSebfDzTdh6Jv3sM6ASo5-1PQJNqvk7Dy632E3zIqcQn8wRqQ3hDCJmX3uvMQ3oQNCpJDSvO1kuB0msMWwBwzq3QtUZcDjXovVpi2j3SZfc8X1nlh2H4hge3ATwb1az6IX_OQgn4r1UIsKqIUsTocIrw',
+            'e': 'AQAB',
+            'key_ops': [ 'verify' ],
+            'ext': true
           }
         }
       }, { filter: false })
@@ -403,6 +401,10 @@ describe('AuthenticationRequest', () => {
       return request.decodeRequestParam(request)
         .then(result => {
           expect(result.cnfKey.alg).to.equal('RS256')
+          expect(result.cnfKey.kty).to.equal('RSA')
+          expect(result.cnfKey.n).to.equal('xykqKb0EPomxUR-W_4oXSqFVwEoD_ZdqSiFfYH-a9r8yGfmugq-fLEuuolQSqrzR3l9U0prBBUeICYBjfuTdRinhMbqkwm8R7_U6dptHe2yILYHLAl0oEooSDKaFMe90h7yDaWiahOewnhh4BWRc_KRNATqx0XGfVmj7Vt4QQifk_xJYZPbLClf8YJ20wKPSebfDzTdh6Jv3sM6ASo5-1PQJNqvk7Dy632E3zIqcQn8wRqQ3hDCJmX3uvMQ3oQNCpJDSvO1kuB0msMWwBwzq3QtUZcDjXovVpi2j3SZfc8X1nlh2H4hge3ATwb1az6IX_OQgn4r1UIsKqIUsTocIrw')
+          expect(result.cnfKey.e).to.equal('AQAB')
+          expect(result.cnfKey.key_ops).to.eql(['verify'])
         })
     })
   })
