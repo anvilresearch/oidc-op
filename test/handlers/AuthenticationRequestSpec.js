@@ -304,7 +304,17 @@ describe('AuthenticationRequest', () => {
           'azp': 'https://app.com',
           'response_type': 'code id_token',
           'client_id': 'https://app.com',
-          'redirect_uri': 'https://app.com/callback'
+          'redirect_uri': 'https://app.com/callback',
+          'key': {
+            "kty": "RSA",
+            "alg": "RS256",
+            "n": "xykqKb0EPomxUR-W_4oXSqFVwEoD_ZdqSiFfYH-a9r8yGfmugq-fLEuuolQSqrzR3l9U0prBBUeICYBjfuTdRinhMbqkwm8R7_U6dptHe2yILYHLAl0oEooSDKaFMe90h7yDaWiahOewnhh4BWRc_KRNATqx0XGfVmj7Vt4QQifk_xJYZPbLClf8YJ20wKPSebfDzTdh6Jv3sM6ASo5-1PQJNqvk7Dy632E3zIqcQn8wRqQ3hDCJmX3uvMQ3oQNCpJDSvO1kuB0msMWwBwzq3QtUZcDjXovVpi2j3SZfc8X1nlh2H4hge3ATwb1az6IX_OQgn4r1UIsKqIUsTocIrw",
+            "e": "AQAB",
+            "key_ops": [
+              "verify"
+            ],
+            "ext": true
+          }
         }
       }, { filter: false })
 
@@ -382,6 +392,17 @@ describe('AuthenticationRequest', () => {
         .then(result => {
           expect(result.params.redirect_uri).to.equal('https://app.com/callback')
           expect(result.params.aud).to.eql([ 'https://rs.com ', 'https://app.com' ])
+        })
+    })
+
+    it('should load the PoP key', () => {
+      params.request = requestJwt
+      req = HttpMocks.createRequest({ method: 'GET', query: params })
+      let request = new AuthenticationRequest(req, res, provider)
+
+      return request.decodeRequestParam(request)
+        .then(result => {
+          expect(result.cnfKey.alg).to.equal('RS256')
         })
     })
   })
