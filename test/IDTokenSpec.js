@@ -56,13 +56,14 @@ describe('IDToken', () => {
     let subject = { _id: 'user123' }
     let client
     let request, response
-    let params
+    let params, cnfKey
 
     describe('authentication request', () => {
       beforeEach(() => {
         client = { 'client_id': 'client123' }
         params = { nonce: 'nonce123' }
-        request = { params, code, provider, client, subject }
+        cnfKey = {}
+        request = { params, code, provider, client, subject, cnfKey }
         response = {}
       })
 
@@ -78,6 +79,7 @@ describe('IDToken', () => {
             expect(token.payload.sub).to.equal('user123')
             expect(token.payload.aud).to.equal('client123')
             expect(token.payload.azp).to.equal('client123')
+            expect(token.payload.cnf).to.eql({ jwk: cnfKey })
           })
       })
     })
@@ -90,7 +92,8 @@ describe('IDToken', () => {
           sub: 'user123',
           nonce: 'nonce123'
         }
-        request = { params, code, provider, client, subject }
+        cnfKey = {}
+        request = { params, code, provider, client, subject, cnfKey }
         response = {
           code: 'c0de',
           access_token: 't0ken'
@@ -112,6 +115,7 @@ describe('IDToken', () => {
             expect(token.payload.nonce).to.equal('nonce123')
             expect(token.payload.at_hash).to.equal('tGwJZ3NDJh8LQ5pHJCIiXg')
             expect(token.payload.c_hash).to.equal('OAO0dgmipGQFRlmxSgzfug')
+            expect(token.payload.cnf).to.eql({ jwk: cnfKey })
           })
       })
     })
@@ -127,7 +131,8 @@ describe('IDToken', () => {
         sub: 'user123',
         nonce: 'n0nce',
         at_hash: 'athash123',
-        c_hash: 'chash123'
+        c_hash: 'chash123',
+        cnf: { jwk: {} }
       }
     })
 
@@ -141,6 +146,7 @@ describe('IDToken', () => {
       expect(token.payload.nonce).to.equal(options.nonce)
       expect(token.payload.at_hash).to.equal(options.at_hash)
       expect(token.payload.c_hash).to.equal(options.c_hash)
+      expect(token.payload.cnf).to.eql(options.cnf)
     })
 
     it('should issue an id token with passed in values', () => {
