@@ -8,7 +8,7 @@ const BaseRequest = require('./BaseRequest')
 const AccessToken = require('../AccessToken')
 const AuthorizationCode = require('../AuthorizationCode')
 const IDToken = require('../IDToken')
-const { JWT } = require('@trust/jose')
+const { JWT, JWK } = require('@trust/jose')
 
 /**
  * AuthenticationRequest
@@ -95,23 +95,64 @@ class AuthenticationRequest extends BaseRequest {
       return Promise.resolve(request)  // Pass through, no request param present
     }
 
+    let requestJwt
+
     return Promise.resolve()
       .then(() => JWT.decode(params['request']))
 
       .catch(err => {
         request.redirect({
           error: 'invalid_request_object',
-          error_description: err.message,
+          error_description: err.message
         })
       })
 
-      .then(requestJwt => request.validateRequestParam(requestJwt))
+      .then(jwt => { requestJwt = jwt })
+
+      .then(() => {
+        if (requestJwt.payload.key) {
+          return request.loadCnfKey(requestJwt.payload.key)
+            .catch(err => {
+              request.redirect({
+                error: 'invalid_request_object',
+                error_description: 'Error importing cnf key: ' + err.message
+              })
+            })
+        }
+      })
+
+      .then(() => request.validateRequestParam(requestJwt))
 
       .then(requestJwt => {
         request.params = Object.assign({}, params, requestJwt.payload)
       })
 
       .then(() => request)
+  }
+
+  /**
+   * loadCnfKey
+   *
+   * @description
+   * Loads the Proof of Possession confirmation key (from the `request` param)
+   *
+   * @see https://tools.ietf.org/html/rfc7800#section-3.1
+   * @see https://tools.ietf.org/html/draft-ietf-oauth-pop-key-distribution-03#section-5
+   *
+   * @param jwk {JWK}
+   *
+   * @returns {Promise<JWK>} Imported key
+   */
+  loadCnfKey (jwk) {
+    // jwk.use = jwk.use || 'sig'  // make sure key usage is not omitted
+
+    // Importing the key serves as additional validation
+    return JWK.importKey(jwk)
+      .then(importedJwk => {
+        this.cnfKey = importedJwk  // has a cryptoKey property
+
+        return importedJwk
+      })
   }
 
   /**
