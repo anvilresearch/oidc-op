@@ -43,13 +43,15 @@ class IDToken extends JWT {
    * @param [options.max] {number} Max token lifetime in seconds
    * @param [options.at_hash] {string} Access Token Hash
    * @param [options.c_hash] {string} Code hash
+   * @param [options.cnf] {Object} Proof of Possession confirmation key, see
+   *   https://tools.ietf.org/html/rfc7800#section-3.1
    *
    * @returns {IDToken} ID Token (JWT instance)
    */
   static issue (provider, options) {
     let { issuer, keys } = provider
 
-    let { aud, azp, sub, nonce, at_hash, c_hash } = options
+    let { aud, azp, sub, nonce, at_hash, c_hash, cnf } = options
 
     let alg = options.alg || DEFAULT_SIG_ALGORITHM
     let jti = options.jti || IDToken.random(8)
@@ -67,6 +69,7 @@ class IDToken extends JWT {
 
     if (at_hash) { payload.at_hash = at_hash }
     if (c_hash) { payload.c_hash = c_hash }
+    if (cnf) { payload.cnf = cnf }
 
     let jwt = new IDToken({ header, payload, key })
 
@@ -114,6 +117,10 @@ class IDToken extends JWT {
         let [at_hash, c_hash] = hashes
 
         let options = { alg, aud, azp, sub, iat, jti, nonce, at_hash, c_hash }
+
+        if (request.cnfKey) {
+          options.cnf = { jwk: request.cnfKey }
+        }
 
         return IDToken.issue(provider, options)
       })
