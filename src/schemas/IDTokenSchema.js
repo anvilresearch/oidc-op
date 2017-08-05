@@ -174,9 +174,9 @@ const IDTokenSchema = JWTSchema.extend({
         cnf: {
           type: 'object',
 
-          properties: {
-            jwk: JWKSchema
-          }
+          // properties: {
+          //   jwk: JWKSchema
+          // }
 
           // TODO: Implement the jku and jwe cases
           // oneOf: [
