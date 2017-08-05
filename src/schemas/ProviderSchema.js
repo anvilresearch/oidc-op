@@ -260,12 +260,12 @@ const schema = new JSONSchema({
 
     request_parameter_supported: {
       type: 'boolean',
-      default: false
+      default: true
     },
 
     request_uri_parameter_supported: {
       type: 'boolean',
-      default: true
+      default: false
     },
 
     require_request_uri_registration: {

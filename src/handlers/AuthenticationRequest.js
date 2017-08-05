@@ -8,7 +8,7 @@ const BaseRequest = require('./BaseRequest')
 const AccessToken = require('../AccessToken')
 const AuthorizationCode = require('../AuthorizationCode')
 const IDToken = require('../IDToken')
-const { JWT } = require('@trust/jose')
+const { JWT, JWK, JWKSet } = require('@trust/jose')
 
 /**
  * AuthenticationRequest
@@ -70,9 +70,19 @@ class AuthenticationRequest extends BaseRequest {
     }
 
     return provider.backend.get('clients', params.client_id)
-      .then(client => {
+
+      .then(client => {  // client registration
         request.client = client
+
+        if (client && client.jwks) {
+          // pre-registered client keys (for signing request objects, etc)
+          return JWKSet.importKeys(client.jwks)
+            .then(importedJwks => {
+              client.jwks = importedJwks
+            })
+        }
       })
+
       .then(() => request)
   }
 
@@ -95,17 +105,33 @@ class AuthenticationRequest extends BaseRequest {
       return Promise.resolve(request)  // Pass through, no request param present
     }
 
+    let requestJwt
+
     return Promise.resolve()
       .then(() => JWT.decode(params['request']))
 
       .catch(err => {
         request.redirect({
           error: 'invalid_request_object',
-          error_description: err.message,
+          error_description: err.message
         })
       })
 
-      .then(requestJwt => request.validateRequestParam(requestJwt))
+      .then(jwt => { requestJwt = jwt })
+
+      .then(() => {
+        if (requestJwt.payload.key) {
+          return request.loadCnfKey(requestJwt.payload.key)
+            .catch(err => {
+              request.redirect({
+                error: 'invalid_request_object',
+                error_description: 'Error importing cnf key: ' + err.message
+              })
+            })
+        }
+      })
+
+      .then(() => request.validateRequestParam(requestJwt))
 
       .then(requestJwt => {
         request.params = Object.assign({}, params, requestJwt.payload)
@@ -115,18 +141,43 @@ class AuthenticationRequest extends BaseRequest {
   }
 
   /**
+   * loadCnfKey
+   *
+   * @description
+   * Loads the Proof of Possession confirmation key (from the `request` param)
+   *
+   * @see https://tools.ietf.org/html/rfc7800#section-3.1
+   * @see https://tools.ietf.org/html/draft-ietf-oauth-pop-key-distribution-03#section-5
+   *
+   * @param jwk {JWK}
+   *
+   * @returns {Promise<JWK>} Imported key
+   */
+  loadCnfKey (jwk) {
+    // jwk.use = jwk.use || 'sig'  // make sure key usage is not omitted
+
+    // Importing the key serves as additional validation
+    return JWK.importKey(jwk)
+      .then(importedJwk => {
+        this.cnfKey = importedJwk  // has a cryptoKey property
+
+        return importedJwk
+      })
+  }
+
+  /**
    * validateRequestParam
    *
    * @description
    * Validates the Request Object jwt (passed by value)
    *
-   * @param jwt {JWT} Decoded request object
+   * @param requestJwt {JWT} Decoded request object
    *
    * @returns {Promise<JWT>} Resolves with the decoded request jwt
    */
-  validateRequestParam (jwt) {
+  validateRequestParam (requestJwt) {
     let { params } = this
-    let { payload } = jwt
+    let { payload } = requestJwt
 
     return Promise.resolve()
 
@@ -176,16 +227,121 @@ class AuthenticationRequest extends BaseRequest {
             error_description: 'Mismatching scope in request object',
           })
         }
+
+        // TODO: What to do with this? SHOULD considered harmful, indeed...
+        // If signed, the Request Object SHOULD contain the Claims iss
+        // (issuer) and aud (audience) as members. The iss value SHOULD be the
+        // Client ID of the RP, unless it was signed by a different party than the
+        // RP. The aud value SHOULD be or include the OP's Issuer Identifier URL.
       })
 
-      // TODO:
-      // For Signature Validation, the alg Header Parameter in the JOSE Header
-      // MUST match the value of the request_object_signing_alg set during Client
-      // Registration or a value that was pre-registered by
-      // other means. The signature MUST be validated against the appropriate key
-      // for that client_id and algorithm.
+      .then(() => this.validateRequestParamSignature(requestJwt))
 
-      .then(() => jwt)
+      .then(() => requestJwt)
+  }
+
+  /**
+   * validateRequestParamSignature
+   *
+   * @param requestJwt {JWT} Decoded request object
+   *
+   * @returns {Promise}
+   */
+  validateRequestParamSignature (requestJwt) {
+    // From https://openid.net/specs/openid-connect-registration-1_0.html#ClientMetadata
+
+    // request_object_signing_alg
+    //   OPTIONAL. JWS [JWS] alg algorithm [JWA] that MUST be used for signing
+    //   Request Objects sent to the OP. All Request Objects from this Client
+    //   MUST be rejected, if not signed with this algorithm. Request Objects
+    //   are described in Section 6.1 of OpenID Connect Core 1.0 [OpenID.Core].
+    //   This algorithm MUST be used both when the Request Object is passed by
+    //   value (using the request parameter) and when it is passed by reference
+    //   (using the request_uri parameter). Servers SHOULD support RS256.
+    //   The value none MAY be used. The default, if omitted, is that any
+    //   algorithm supported by the OP and the RP MAY be used.
+
+    // From https://openid.net/specs/openid-connect-core-1_0.html#SignedRequestObject
+
+    // The Request Object MAY be signed or unsigned (plaintext). When it is
+    // plaintext, this is indicated by use of the none algorithm [JWA] in the
+    // JOSE Header.
+
+    // For Signature Validation, the alg Header Parameter in the JOSE Header
+    // MUST match the value of the request_object_signing_alg set during Client
+    // Registration or a value that was pre-registered by
+    // other means. The signature MUST be validated against the appropriate key
+    // for that client_id and algorithm.
+
+    if (!this.client) {
+      // No client_id, or no registration found for it
+      // An error will be thrown downstream in `validate()`
+      return Promise.resolve()
+    }
+
+    let clientJwks = this.client.jwks
+    let registeredSigningAlg = this.client['request_object_signing_alg']
+
+    let signedRequest = requestJwt.header.alg !== 'none'
+    let signatureRequired = clientJwks ||
+      (registeredSigningAlg && registeredSigningAlg !== 'none')
+
+    if (!signedRequest && !signatureRequired) {
+      // Unsigned, signature not required - ok
+      return Promise.resolve()
+    }
+
+    return Promise.resolve()
+      .then(() => {
+        if (signedRequest && !clientJwks) {
+          // No keys pre-registered, but the request is signed. Throw error
+          return this.redirect({
+            error: 'invalid_request',
+            error_description: 'Signed request object, but no jwks pre-registered',
+          })
+        }
+
+        if (signedRequest && registeredSigningAlg === 'none') {
+          return this.redirect({
+            error: 'invalid_request',
+            error_description: 'Signed request object, but no signature allowed by request_object_signing_alg',
+          })
+        }
+
+        if (!signedRequest && signatureRequired) {
+          return this.redirect({
+            error: 'invalid_request',
+            error_description: 'Signature required for request object',
+          })
+        }
+
+        if (registeredSigningAlg && requestJwt.header.alg !== registeredSigningAlg) {
+          return this.redirect({
+            error: 'invalid_request',
+            error_description: 'Request signed by algorithm that does not match registered request_object_signing_alg value',
+          })
+        }
+
+        // Request is signed. Validate signature against registered jwks
+        let keyMatch = requestJwt.resolveKeys(clientJwks)
+
+        if (!keyMatch) {
+          return this.redirect({
+            error: 'invalid_request',
+            error_description: 'Cannot resolve signing key for request object',
+          })
+        }
+
+        return requestJwt.verify()
+          .then(verified => {
+            if (!verified) {
+              return this.redirect({
+                error: 'invalid_request',
+                error_description: 'Invalid request object signature',
+              })
+            }
+          })
+      })
   }
 
   /**

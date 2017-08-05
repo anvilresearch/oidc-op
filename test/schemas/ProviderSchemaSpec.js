@@ -594,7 +594,7 @@ describe('OpenID Connect Provider Schema', () => {
   })
 
   it('should define default of "request_parameter_supported"', () => {
-    properties.request_parameter_supported.default.should.equal(false)
+    properties.request_parameter_supported.default.should.equal(true)
   })
 
   /**
@@ -608,7 +608,7 @@ describe('OpenID Connect Provider Schema', () => {
   })
 
   it('should define default of "request_uri_parameter_supported"', () => {
-    properties.request_uri_parameter_supported.default.should.equal(true)
+    properties.request_uri_parameter_supported.default.should.equal(false)
   })
 
   /**
