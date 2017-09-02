@@ -157,6 +157,56 @@ describe('BaseRequest', () => {
     })
   })
 
+  describe('responseUri', () => {
+    const data = {
+      id_token: 't0ken',
+      state: 'state123'
+    }
+
+    describe('hash fragment mode', () => {
+      let responseMode = '#'
+
+      it('should serialize response params in the hash fragment', () => {
+        let uri = 'https://ex.com/resource'
+
+        let result = BaseRequest.responseUri(uri, data, responseMode)
+
+        expect(result).to
+          .equal('https://ex.com/resource#id_token=t0ken&state=state123')
+      })
+
+      it('should preserve existing hash fragment', () => {
+        let uri = 'https://ex.com/resource#hashFragment'
+
+        let result = BaseRequest.responseUri(uri, data, responseMode)
+
+        expect(result).to
+          .equal('https://ex.com/resource#hashFragment&id_token=t0ken&state=state123')
+      })
+    })
+
+    describe('query mode', () => {
+      let responseMode = '?'
+
+      it('should serialize response params in the search string', () => {
+        let uri = 'https://ex.com/resource'
+
+        let result = BaseRequest.responseUri(uri, data, responseMode)
+
+        expect(result).to
+          .equal('https://ex.com/resource?id_token=t0ken&state=state123')
+      })
+
+      it('should preserve existing query string', () => {
+        let uri = 'https://ex.com/resource?key=value'
+
+        let result = BaseRequest.responseUri(uri, data, responseMode)
+
+        expect(result).to
+          .equal('https://ex.com/resource?key=value&id_token=t0ken&state=state123')
+      })
+    })
+  })
 
   /**
    * Redirect
