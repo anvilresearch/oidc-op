@@ -5,7 +5,7 @@
  * @ignore
  */
 const crypto = require('@trust/webcrypto')
-const qs = require('qs')
+const { URL, URLSearchParams } = require('whatwg-url')
 
 const HandledError = require('../errors/HandledError')
 
@@ -97,6 +97,80 @@ class BaseRequest {
   }
 
   /**
+   * Response Uri
+   *
+   * @description
+   * Composes and returns a response uri (for an authentication request) for
+   * user agent redirection.
+   *
+   * @param uri {string} Base uri (value of `redirect_uri`)
+   *
+   * @param data {object} Response parameters hashmap
+   *
+   * @param responseMode {string} ? or #
+   *
+   * @returns {string}
+   */
+  static responseUri (uri, data, responseMode) {
+    uri = new URL(uri)
+    //
+    if (responseMode === '?') {
+      return BaseRequest.responseQueryUri(uri, data)
+    } else {
+      return BaseRequest.responseHashUri(uri, data)
+    }
+  }
+
+  /**
+   * Response Hash Uri
+   *
+   * @description
+   * Composes and returns a hash fragment mode response uri.
+   *
+   * @param uri {URL} Parsed base uri (value of `redirect_uri`)
+   *
+   * @param data {object} Response parameters hashmap
+   *
+   * @returns {string}
+   */
+  static responseHashUri (uri, data) {
+    let responseParams = (new URLSearchParams(data)).toString()
+
+    if (uri.hash) {
+      // Base uri already has a hash fragments; append the response params to it
+      uri.hash = uri.hash + '&' + responseParams
+    } else {
+      uri.hash = responseParams
+    }
+
+    return uri.toString()
+  }
+
+  /**
+   * Response Query Uri
+   *
+   * @description
+   * Composes and returns a query mode response uri.
+   *
+   * @param uri {URL} Parsed base uri (value of `redirect_uri`)
+   *
+   * @param data {object} Response parameters hashmap
+   *
+   * @returns {string}
+   */
+  static responseQueryUri (uri, data) {
+    const responseParams = new URLSearchParams(uri.search)
+
+    for (let param in data) {
+      responseParams.set(param, data[param])
+    }
+
+    uri.search = responseParams
+
+    return uri.toString()
+  }
+
+  /**
    * 302 Redirect Response
    */
   redirect (data) {
@@ -106,8 +180,9 @@ class BaseRequest {
       data.state = state
     }
 
-    let response = qs.stringify(data)
-    res.redirect(`${uri}${responseMode}${response}`)
+    const responseUri = BaseRequest.responseUri(uri, data, responseMode)
+
+    res.redirect(responseUri)
 
     let error = new HandledError('302 Redirect')
 
