@@ -71,7 +71,7 @@ describe('AuthenticationRequest', () => {
    */
   describe('handle', () => {
     let client = {
-      redirect_uris: 'https://example.com/callback',
+      redirect_uris: ['https://example.com/callback'],
       client_id: 'uuid'
     }
     let params = {
@@ -830,7 +830,7 @@ describe('AuthenticationRequest', () => {
           nonce: 'n0nc3'
         }
         req = { method: 'GET', query: params }
-        client = { redirect_uris: 'https://example.com/callback' }
+        client = { redirect_uris: ['https://example.com/callback'] }
         provider = {
           host,
           response_types_supported: ['code', 'id_token token'],
@@ -844,6 +844,13 @@ describe('AuthenticationRequest', () => {
         let result = request.validate(request)
         expect(result).to.equal(request)
       })
+    })
+  })
+
+  describe('with redirect uri containing a hash fragment', () => {
+    it('should validate with a matching redirect uri with hash fragment', () => {
+      expect(AuthenticationRequest.validateRedirectUri(['https://example.com/callback'],
+        'https://example.com/callback#hashFragment')).to.be.true()
     })
   })
 

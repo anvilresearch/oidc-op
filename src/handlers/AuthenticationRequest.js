@@ -9,6 +9,7 @@ const AccessToken = require('../AccessToken')
 const AuthorizationCode = require('../AuthorizationCode')
 const IDToken = require('../IDToken')
 const { JWT, JWK, JWKSet } = require('@trust/jose')
+const { URL } = require('whatwg-url')
 
 /**
  * AuthenticationRequest
@@ -379,7 +380,7 @@ class AuthenticationRequest extends BaseRequest {
     }
 
     // REDIRECT_URI MUST MATCH
-    if (!client.redirect_uris.includes(params.redirect_uri)) {
+    if (!AuthenticationRequest.validateRedirectUri(client.redirect_uris, params.redirect_uri)) {
       return request.badRequest({
         error: 'invalid_request',
         error_description: 'Mismatching redirect uri'
@@ -438,6 +439,17 @@ class AuthenticationRequest extends BaseRequest {
 
     // VALID REQUEST
     return request
+  }
+
+  static validateRedirectUri (registeredUris, redirectUri) {
+    // Drop hash fragment when validating against pre-registered uris
+    let uriNoHash = (uri) => {
+      uri = new URL(uri)
+      uri.hash = ''
+      return uri.toString()
+    }
+
+    return registeredUris.some(uri => uriNoHash(uri) === uriNoHash(redirectUri))
   }
 
   /**
