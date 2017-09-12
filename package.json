@@ -7,8 +7,12 @@
     "test": "test"
   },
   "scripts": {
-    "test": "mocha test",
-    "jsdoc": "jsdoc -c jsdoc.json -r"
+    "coverage": "nyc --reporter=lcov mocha test",
+    "jsdoc": "jsdoc -c jsdoc.json -r",
+    "postversion": "git push --follow-tags",
+    "preversion": "mocha test",
+    "standard": "standard",
+    "test": "nyc mocha test && echo 'to view coverage: open coverage/index.html'"
   },
   "repository": {
     "type": "git",
@@ -49,10 +53,20 @@
   "devDependencies": {
     "chai": "^4.0.1",
     "chai-as-promised": "^7.0.0",
+    "codecov": "^2.3.0",
     "dirty-chai": "^2.0.0",
     "mocha": "^3.2.0",
     "node-mocks-http": "^1.6.3",
+    "nyc": "^11.2.1",
     "sinon": "^2.3.2",
-    "sinon-chai": "^2.8.0"
+    "sinon-chai": "^2.8.0",
+    "standard": "^10.0.3"
+  },
+  "nyc": {
+    "reporter": [
+      "html",
+      "text-summary"
+    ],
+    "cache": true
   }
 }
