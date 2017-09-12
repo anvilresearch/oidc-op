@@ -1,5 +1,9 @@
 # OpenID Connect for Nodejs
 
+[![Build Status](https://travis-ci.org/anvilresearch/oidc-op.svg?branch=master)](https://travis-ci.org/anvilresearch/oidc-op)
+[![codecov](https://codecov.io/gh/anvilresearch/oidc-op/branch/master/graph/badge.svg)](https://codecov.io/gh/anvilresearch/oidc-op)
+
+
 This library aims to implement a full-featured OpenID Connect Provider for
 Nodejs. It is not intended to be used directly by most developers, but rather
 via a complete self-contained server such as Anvil Connect. Some applications
@@ -54,7 +58,7 @@ LDAP, SAML, OAuth, or some other means. The host system is responsible for
 other dependencies of the OIDC authentication flows as well, such as
 persistence, managing user attributes, multi-factor auth and so on.
 
-In addition to implementing OpenID Connect Provider functions, this library 
+In addition to implementing OpenID Connect Provider functions, this library
 defines an interface between OpenID Connect and the host application.
 
 The goal of the interface is to manage the flow of responsibility between the
