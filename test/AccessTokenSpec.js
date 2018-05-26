@@ -32,7 +32,7 @@ describe('AccessToken', () => {
   var provider
 
   before(function () {
-    this.timeout(5000)
+    this.timeout(10000)
 
     let configPath = path.join(__dirname, 'config', 'provider.json')
 
@@ -82,7 +82,7 @@ describe('AccessToken', () => {
         return AccessToken.issueForRequest(request, response)
           .then(res => {
             expect(res['token_type']).to.equal('Bearer')
-            expect(res['expires_in']).to.equal(3600)
+            expect(res['expires_in']).to.equal(1209600)
 
             return JWT.decode(res['access_token'])
           })
@@ -115,7 +115,7 @@ describe('AccessToken', () => {
         return AccessToken.issueForRequest(request, response)
           .then(res => {
             expect(res['token_type']).to.equal('Bearer')
-            expect(res['expires_in']).to.equal(3600)
+            expect(res['expires_in']).to.equal(1209600)
 
             return JWT.decode(res['access_token'])
           })
