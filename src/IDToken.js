@@ -6,7 +6,7 @@ const base64url = require('base64url')
 const {JWT} = require('@trust/jose')
 const IDTokenSchema = require('./schemas/IDTokenSchema')
 
-const DEFAULT_MAX_AGE = 3600  // Default ID token expiration, in seconds
+const DEFAULT_MAX_AGE = 1209600  // Default ID token expiration, in seconds
 const DEFAULT_SIG_ALGORITHM = 'RS256'
 
 /**

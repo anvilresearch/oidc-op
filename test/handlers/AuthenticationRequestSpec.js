@@ -925,7 +925,7 @@ describe('AuthenticationRequest', () => {
       return request.allow(request)
         .then(response => {
           expect(response.token_type).to.equal('Bearer')
-          expect(response.expires_in).to.equal(3600)
+          expect(response.expires_in).to.equal(1209600)
           expect(response.id_token).to.exist()
           expect(response.id_token.split('.').length).to.equal(3)
           expect(response.access_token).to.exist()
